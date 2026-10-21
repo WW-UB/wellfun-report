@@ -1,1 +1,962 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1">
+<title>wellfun · Sales</title>
+<meta name="theme-color" content="#cc0000">
+<style>
+:root{--p:#cc0000;--pd:#990000;--bg:#f3f3f3;--card:#fff;--text:#111;--muted:#777;--border:#e0e0e0;--shadow:0 2px 10px rgba(0,0,0,0.08);--r:14px}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--bg);color:var(--text);font-size:15px;line-height:1.4}
+.screen{display:none;min-height:100dvh;padding-bottom:40px}
+.screen.active{display:block}
+.hdr{background:var(--p);color:#fff;padding:14px 16px;display:flex;align-items:center;gap:10px;position:sticky;top:0;z-index:50}
+.hdr-back{background:none;border:none;color:#fff;font-size:20px;cursor:pointer;padding:0 6px 0 0;line-height:1}
+.hdr-main{flex:1}
+.hdr-title{font-size:17px;font-weight:700}
+.hdr-sub{font-size:11px;opacity:.8}
+.hdr-logout{background:rgba(255,255,255,.2);border:none;color:#fff;padding:6px 10px;border-radius:8px;font-size:12px;cursor:pointer;font-weight:600}
+.login-hero{background:var(--p);padding:44px 20px 68px;text-align:center}
+.wf-wordmark{color:#fff;font-size:52px;font-weight:900;letter-spacing:-3px;line-height:1}
+.wf-tagline{color:rgba(255,255,255,.75);font-size:11px;letter-spacing:1px;text-transform:uppercase;margin-top:6px}
+.login-card{background:#fff;margin:-36px 14px 0;border-radius:var(--r);padding:24px;box-shadow:0 6px 24px rgba(0,0,0,.15)}
+.login-title{font-size:17px;font-weight:700;margin-bottom:16px;text-align:center}
+label{display:block;font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;margin:14px 0 4px}
+input,select,textarea{width:100%;padding:12px 14px;border:1.5px solid var(--border);border-radius:10px;font-size:15px;background:#fafafa;color:var(--text);font-family:inherit}
+input:focus,select:focus,textarea:focus{outline:none;border-color:var(--p);background:#fff}
+textarea{resize:vertical;min-height:80px}
+input[type=number]{-moz-appearance:textfield}
+.btn{display:block;width:100%;padding:14px;border-radius:12px;border:none;font-size:16px;font-weight:700;cursor:pointer;text-align:center;font-family:inherit;transition:opacity .15s}
+.btn:active{opacity:.8}
+.btn-primary{background:var(--p);color:#fff;margin-top:20px}
+.btn-secondary{background:#f0f0f0;color:var(--text)}
+.btn-outline{background:#fff;color:var(--p);border:2px solid var(--p)}
+.btn-sm{font-size:13px;padding:7px 13px;border-radius:8px;width:auto;display:inline-block;margin-top:0}
+.btn-danger{background:#fee2e2;color:#dc2626}
+.btn-green{background:#dcfce7;color:#16a34a}
+.pin-display{display:flex;justify-content:center;gap:16px;margin:20px 0 18px}
+.pin-dot{width:15px;height:15px;border-radius:50%;border:2.5px solid var(--p);transition:background .1s}
+.pin-dot.filled{background:var(--p)}
+.pin-pad{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;max-width:230px;margin:0 auto}
+.pin-key{height:64px;background:#f5f5f5;border:none;border-radius:50%;font-size:22px;font-weight:600;cursor:pointer;font-family:inherit}
+.pin-key:active{background:#e0e0e0}
+.menu-wrap{padding:8px 12px 12px}
+.menu-section{font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;padding:16px 4px 6px}
+.menu-btn{display:flex;align-items:center;gap:14px;width:100%;padding:16px;background:var(--card);border:none;border-radius:var(--r);margin-bottom:8px;cursor:pointer;box-shadow:var(--shadow);text-align:left;font-family:inherit}
+.menu-icon{font-size:22px;width:38px;text-align:center;flex-shrink:0}
+.menu-label{font-size:15px;font-weight:700}
+.menu-sub{font-size:12px;color:var(--muted);margin-top:1px}
+.card{background:var(--card);border-radius:var(--r);padding:16px;margin:10px 12px;box-shadow:var(--shadow)}
+.card-title{font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:var(--p);margin-bottom:12px}
+.stat-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:10px 12px}
+.stat-box{background:var(--card);border-radius:var(--r);padding:16px 10px;box-shadow:var(--shadow);text-align:center}
+.stat-box.full{grid-column:1/-1}
+.stat-val{font-size:28px;font-weight:900;color:var(--p);line-height:1}
+.stat-lbl{font-size:11px;color:var(--muted);margin-top:4px}
+.prog-bar{height:8px;background:#f0f0f0;border-radius:4px;overflow:hidden;margin:6px 0 4px}
+.prog-fill{height:100%;background:var(--p);border-radius:4px}
+.prog-labels{display:flex;justify-content:space-between;font-size:11px;color:var(--muted)}
+.badge{display:inline-block;padding:3px 9px;border-radius:20px;font-size:12px;font-weight:700}
+.bg{background:#dcfce7;color:#16a34a}
+.bo{background:#fef3c7;color:#d97706}
+.br{background:#fee2e2;color:#dc2626}
+.bx{background:#f0f0f0;color:var(--muted)}
+.tabs{display:flex;background:#fff;border-bottom:2px solid var(--border);overflow-x:auto;position:sticky;top:52px;z-index:40}
+.tab{padding:11px 14px;font-size:13px;font-weight:600;color:var(--muted);cursor:pointer;white-space:nowrap;border-bottom:3px solid transparent;margin-bottom:-2px}
+.tab.active{color:var(--p);border-bottom-color:var(--p)}
+.tbl-scroll{overflow-x:auto}
+.tbl{width:100%;border-collapse:collapse;font-size:13px}
+.tbl th{text-align:center;padding:8px 6px;font-size:11px;color:var(--muted);border-bottom:2px solid var(--border);white-space:nowrap}
+.tbl th:first-child{text-align:left}
+.tbl td{text-align:center;padding:10px 6px;border-bottom:1px solid var(--border)}
+.tbl td:first-child{text-align:left;font-weight:600}
+.tbl tr.tot td{font-weight:700;background:#fafafa;border-top:2px solid var(--border)}
+.opt-row{display:flex;flex-wrap:wrap;gap:8px;margin-top:4px}
+.opt-btn{padding:10px 16px;border-radius:10px;border:2px solid var(--border);background:#fafafa;font-size:14px;font-weight:600;cursor:pointer;font-family:inherit;transition:all .15s}
+.opt-btn.sel{border-color:var(--p);background:var(--p);color:#fff}
+.stepper{display:flex;align-items:center;gap:12px}
+.step-btn{width:44px;height:44px;border-radius:50%;border:2px solid var(--border);background:#fff;font-size:22px;cursor:pointer;display:flex;align-items:center;justify-content:center;font-weight:700;flex-shrink:0}
+.step-val{font-size:28px;font-weight:900;color:var(--p);min-width:40px;text-align:center}
+.toggle{display:flex;align-items:center;gap:10px;margin:8px 0}
+.toggle input{display:none}
+.tgl-s{width:46px;height:26px;background:#ddd;border-radius:13px;position:relative;cursor:pointer;transition:background .2s;flex-shrink:0}
+.tgl-s::after{content:'';position:absolute;width:22px;height:22px;background:#fff;border-radius:50%;top:2px;left:2px;transition:left .2s;box-shadow:0 1px 4px rgba(0,0,0,.2)}
+input:checked+.tgl-s{background:var(--p)}
+input:checked+.tgl-s::after{left:22px}
+.price-preview{background:linear-gradient(135deg,var(--p),var(--pd));color:#fff;border-radius:var(--r);padding:16px;margin:16px 0;text-align:center}
+.price-big{font-size:36px;font-weight:900}
+.price-lbl{font-size:12px;opacity:.8;margin-top:2px}
+.spinner{text-align:center;padding:40px;color:var(--muted);font-size:14px}
+.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#333;color:#fff;padding:12px 20px;border-radius:12px;font-size:14px;font-weight:600;z-index:999;opacity:0;transition:opacity .3s;pointer-events:none;white-space:nowrap}
+.toast.show{opacity:1}
+.ytd-banner{background:var(--p);color:#fff;padding:16px;margin:10px 12px;border-radius:var(--r);display:flex;justify-content:space-between;align-items:center}
+.ytd-num{font-size:32px;font-weight:900}
+.ytd-lbl{font-size:11px;opacity:.8}
+.goal-box{background:var(--card);border-radius:var(--r);padding:14px;box-shadow:var(--shadow);text-align:center}
+.goal-val{font-size:22px;font-weight:900;color:var(--p)}
+.goal-lbl{font-size:11px;color:var(--muted);margin-top:2px}
+</style>
+</head>
+<body>
 
+<!-- LOGIN -->
+<div class="screen active" id="screen-login">
+  <div class="login-hero">
+    <div class="wf-wordmark">wellfun</div>
+    <div class="wf-tagline">FITNESS · WELLNESS · GESUNDHEIT</div>
+  </div>
+  <div class="login-card">
+    <div class="login-title">Anmelden</div>
+    <label>Mitarbeiter</label>
+    <select id="login-emp"><option value="">– auswählen –</option></select>
+    <div class="pin-display">
+      <div class="pin-dot" id="pd0"></div>
+      <div class="pin-dot" id="pd1"></div>
+      <div class="pin-dot" id="pd2"></div>
+      <div class="pin-dot" id="pd3"></div>
+    </div>
+    <div class="pin-pad">
+      <button class="pin-key" onclick="pinKey('1')">1</button>
+      <button class="pin-key" onclick="pinKey('2')">2</button>
+      <button class="pin-key" onclick="pinKey('3')">3</button>
+      <button class="pin-key" onclick="pinKey('4')">4</button>
+      <button class="pin-key" onclick="pinKey('5')">5</button>
+      <button class="pin-key" onclick="pinKey('6')">6</button>
+      <button class="pin-key" onclick="pinKey('7')">7</button>
+      <button class="pin-key" onclick="pinKey('8')">8</button>
+      <button class="pin-key" onclick="pinKey('9')">9</button>
+      <button class="pin-key" onclick="pinKey('')"></button>
+      <button class="pin-key" onclick="pinKey('0')">0</button>
+      <button class="pin-key" onclick="pinDel()">⌫</button>
+    </div>
+    <div id="login-err" style="color:var(--p);text-align:center;font-size:13px;margin-top:10px;min-height:18px"></div>
+  </div>
+</div>
+
+<!-- MENU -->
+<div class="screen" id="screen-menu">
+  <div class="hdr">
+    <div class="hdr-main">
+      <div class="hdr-title" id="menu-title">wellfun</div>
+      <div class="hdr-sub" id="menu-sub"></div>
+    </div>
+    <button class="hdr-logout" onclick="doLogout()">Abmelden</button>
+  </div>
+  <div class="menu-wrap">
+    <div class="menu-section">Heute</div>
+    <button class="menu-btn" onclick="loadEntry()">
+      <span class="menu-icon">📋</span>
+      <div><div class="menu-label">Tageseintrag</div><div class="menu-sub">Terminliste &amp; Erschienen</div></div>
+    </button>
+    <div class="menu-section">Statistik</div>
+    <button class="menu-btn" onclick="loadStats()">
+      <span class="menu-icon">📊</span>
+      <div><div class="menu-label">Meine Zahlen</div><div class="menu-sub">EQ, AQ, Umsatz</div></div>
+    </button>
+    <div id="admin-menu" style="display:none">
+      <div class="menu-section">Admin</div>
+      <button class="menu-btn" onclick="loadAdmin()">
+        <span class="menu-icon">👥</span>
+        <div><div class="menu-label">Team-Übersicht</div><div class="menu-sub">Alle Mitarbeiter</div></div>
+      </button>
+      <button class="menu-btn" onclick="loadZiele()">
+        <span class="menu-icon">🎯</span>
+        <div><div class="menu-label">Ziele setzen</div><div class="menu-sub">Monats- &amp; Wochenziele</div></div>
+      </button>
+      <button class="menu-btn" onclick="loadEmployees()">
+        <span class="menu-icon">⚙️</span>
+        <div><div class="menu-label">Mitarbeiter</div><div class="menu-sub">Verwalten &amp; PIN ändern</div></div>
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- TAGESEINTRAG -->
+<div class="screen" id="screen-entry">
+  <div class="hdr">
+    <button class="hdr-back" onclick="goBack()">←</button>
+    <div class="hdr-main"><div class="hdr-title">Tageseintrag</div><div class="hdr-sub" id="entry-date-lbl"></div></div>
+  </div>
+  <div class="card">
+    <div class="card-title">Terminliste</div>
+    <div class="stepper">
+      <button class="step-btn" onclick="stepChange('terminliste',-1)">−</button>
+      <div class="step-val" id="val-terminliste">0</div>
+      <button class="step-btn" onclick="stepChange('terminliste',1)">+</button>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-title">Erschienen</div>
+    <div class="stepper">
+      <button class="step-btn" onclick="stepChange('erschienen',-1)">−</button>
+      <div class="step-val" id="val-erschienen">0</div>
+      <button class="step-btn" onclick="stepChange('erschienen',1)">+</button>
+    </div>
+  </div>
+  <div style="padding:0 12px">
+    <button class="btn btn-primary" onclick="saveEntry()">Speichern</button>
+  </div>
+  <!-- Abschlüsse des Tages -->
+  <div class="card" style="margin-top:16px">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+      <div class="card-title" style="margin-bottom:0">Abschlüsse heute</div>
+      <button class="btn btn-sm btn-primary" onclick="loadAbschlussForm()">＋ Abschluss</button>
+    </div>
+    <div id="abs-list-today"></div>
+  </div>
+  <div class="card">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+      <div class="card-title" style="margin-bottom:0">Nicht-Abschlüsse heute</div>
+      <button class="btn btn-sm btn-secondary" onclick="loadNichtAbschlussForm()">＋ Eintragen</button>
+    </div>
+    <div id="nab-list-today"></div>
+  </div>
+</div>
+
+<!-- ABSCHLUSS FORM -->
+<div class="screen" id="screen-abschluss-form">
+  <div class="hdr">
+    <button class="hdr-back" onclick="goBack()">←</button>
+    <div class="hdr-main"><div class="hdr-title">Abschluss eintragen</div></div>
+  </div>
+  <div class="card">
+    <label>Name des Mitglieds</label>
+    <input type="text" id="abs-member-name" placeholder="Vor- und Nachname">
+    <label>Tarif</label>
+    <div class="opt-row" id="tarif-opts">
+      <button class="opt-btn" onclick="selectTarif('komplett',this)">Komplett</button>
+      <button class="opt-btn" onclick="selectTarif('fitness',this)">Fitness</button>
+    </div>
+    <label>Laufzeit</label>
+    <div class="opt-row" id="laufzeit-opts">
+      <button class="opt-btn" onclick="selectLaufzeit(7,this)">7 Mo.</button>
+      <button class="opt-btn" onclick="selectLaufzeit(13,this)">13 Mo.</button>
+      <button class="opt-btn" onclick="selectLaufzeit(24,this)">24 Mo.</button>
+    </div>
+    <label>Add-ons</label>
+    <div class="toggle"><label class="toggle"><input type="checkbox" id="addon-egym" onchange="calcAbschluss()"><span class="tgl-s"></span></label><span>egym (+2,99 €/Wo.)</span></div>
+    <div class="toggle"><label class="toggle"><input type="checkbox" id="addon-getraenke" onchange="calcAbschluss()"><span class="tgl-s"></span></label><span>Getränke-Flat (+1,99 €/Wo.)</span></div>
+    <div class="toggle"><label class="toggle"><input type="checkbox" id="addon-sauna" onchange="calcAbschluss()"><span class="tgl-s"></span></label><span>Sauna</span></div>
+    <div id="sauna-preis-row" style="display:none;margin-top:8px">
+      <label>Sauna Wochenpreis (€)</label>
+      <input type="number" id="sauna-preis" placeholder="z.B. 3.99" step="0.01" oninput="calcAbschluss()">
+    </div>
+    <div class="toggle"><label class="toggle"><input type="checkbox" id="addon-five" onchange="calcAbschluss()"><span class="tgl-s"></span></label><span>five (149 € einmalig)</span></div>
+    <label>Startpaket (€)</label>
+    <input type="number" id="abs-startpaket" placeholder="0" value="0" step="0.01" oninput="calcAbschluss()">
+    <div class="price-preview" id="price-preview" style="display:none">
+      <div class="price-lbl">Gesamtumsatz</div>
+      <div class="price-big" id="price-big">–</div>
+      <div class="price-lbl" id="price-detail"></div>
+    </div>
+    <button class="btn btn-primary" onclick="submitAbschluss()">Abschluss speichern</button>
+  </div>
+</div>
+
+<!-- NICHT-ABSCHLUSS FORM -->
+<div class="screen" id="screen-nichtabschluss-form">
+  <div class="hdr">
+    <button class="hdr-back" onclick="goBack()">←</button>
+    <div class="hdr-main"><div class="hdr-title">Nicht-Abschluss</div></div>
+  </div>
+  <div class="card">
+    <label>Name des Interessenten</label>
+    <input type="text" id="nab-member-name" placeholder="Vor- und Nachname">
+    <label>Grund</label>
+    <textarea id="nab-grund" placeholder="Warum kein Abschluss?"></textarea>
+    <button class="btn btn-primary" onclick="submitNichtabschluss()">Speichern</button>
+  </div>
+</div>
+
+<!-- STATS -->
+<div class="screen" id="screen-stats">
+  <div class="hdr">
+    <button class="hdr-back" onclick="goBack()">←</button>
+    <div class="hdr-main"><div class="hdr-title">Meine Zahlen</div></div>
+  </div>
+  <div id="stats-content"><div class="spinner">Lade …</div></div>
+</div>
+
+<!-- ADMIN -->
+<div class="screen" id="screen-admin">
+  <div class="hdr">
+    <button class="hdr-back" onclick="goBack()">←</button>
+    <div class="hdr-main"><div class="hdr-title">Team-Übersicht</div></div>
+  </div>
+  <div style="padding:8px 12px 0;display:flex;gap:8px;align-items:center">
+    <select id="admin-loc-sel" onchange="renderAdminTab()" style="flex:1"></select>
+  </div>
+  <div class="tabs">
+    <div class="tab active" onclick="setAdminTab('heute',this)">Heute</div>
+    <div class="tab" onclick="setAdminTab('woche',this)">Woche</div>
+    <div class="tab" onclick="setAdminTab('monat',this)">Monat</div>
+    <div class="tab" onclick="setAdminTab('ytd',this)">YTD</div>
+  </div>
+  <div id="admin-content"><div class="spinner">Lade …</div></div>
+  <div style="padding:0 12px;display:flex;gap:8px;flex-wrap:wrap;margin-top:8px">
+    <button class="btn btn-sm btn-secondary" onclick="window._exportData('abs')">📥 Abschluss-Liste CSV</button>
+    <button class="btn btn-sm btn-secondary" onclick="window._exportData('nab')">📥 Nicht-Abschluss-Liste CSV</button>
+  </div>
+  <!-- Listen -->
+  <div class="card" id="admin-abs-liste" style="margin-top:12px">
+    <div class="card-title">Abschluss-Liste</div>
+    <div id="admin-abs-rows"></div>
+  </div>
+  <div class="card" id="admin-nab-liste">
+    <div class="card-title">Nicht-Abschluss-Liste</div>
+    <div id="admin-nab-rows"></div>
+  </div>
+</div>
+
+<!-- ZIELE -->
+<div class="screen" id="screen-ziele">
+  <div class="hdr">
+    <button class="hdr-back" onclick="goBack()">←</button>
+    <div class="hdr-main"><div class="hdr-title">Ziele setzen</div></div>
+  </div>
+  <div id="ziele-content"><div class="spinner">Lade …</div></div>
+</div>
+
+<!-- EMPLOYEES -->
+<div class="screen" id="screen-employees">
+  <div class="hdr">
+    <button class="hdr-back" onclick="goBack()">←</button>
+    <div class="hdr-main"><div class="hdr-title">Mitarbeiter</div></div>
+  </div>
+  <div id="emp-list-content"><div class="spinner">Lade …</div></div>
+  <div style="padding:0 12px;">
+    <button class="btn btn-outline" onclick="showAddEmpForm()">＋ Mitarbeiter hinzufügen</button>
+  </div>
+  <div id="add-emp-form" style="display:none;" class="card">
+    <div class="card-title">Neuer Mitarbeiter</div>
+    <label>Vorname *</label><input type="text" id="new-emp-vorname" placeholder="Vorname">
+    <label>Nachname (optional)</label><input type="text" id="new-emp-nachname" placeholder="Nachname">
+    <label>Standort</label><select id="new-emp-loc"></select>
+    <label>PIN (4-stellig)</label><input type="number" id="new-emp-pin" placeholder="1234" maxlength="4">
+    <div style="display:flex;align-items:center;gap:10px;margin-top:12px;">
+      <label class="toggle" style="margin:0;"><input type="checkbox" id="new-emp-admin"><span class="tgl-s"></span></label>
+      <span style="font-size:14px;font-weight:600;">Admin-Rechte</span>
+    </div>
+    <button class="btn btn-primary" onclick="saveEmployee()">Speichern</button>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+// ============================================================
+// CONFIG
+// ============================================================
+const SUPABASE_URL = 'https://bklxyezzhtvibmedknvp.supabase.co';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJrbHh5ZXp6aHR2aWJtZWRrbnZwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTI1ODE1NjYsImV4cCI6MjEwODE1NzU2Nn0.M2ZQ-VCA77oJbg_nZ3wSUI4vxblZNi_o3BKZkFt02wY';
+
+const PREISE = {
+  komplett: { 7: 21.99, 13: 18.99, 24: 16.99 },
+  fitness:  { 7: 19.99, 13: 16.99, 24: 14.99 }
+};
+const LAUFZEIT_WOCHEN = { 7: 30, 13: 56, 24: 104 };
+const ADDON_EGYM = 2.99;
+const ADDON_GETRAENKE = 1.99;
+const FIVE_PREIS = 149;
+
+// ============================================================
+// STATE
+// ============================================================
+const db = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+let currentEmp = null, currentLocId = null, currentLocName = '';
+let _locs = [], _emps = [];
+let _pinBuf = '';
+let _screenStack = ['screen-login'];
+let _entryId = null, _entryVals = {terminliste:0, erschienen:0};
+let _selTarif = null, _selLaufzeit = null;
+let _adminTab = 'heute';
+let _adminAbschl = [], _adminNabschl = [];
+
+// ============================================================
+// INIT
+// ============================================================
+async function init() {
+  const { data: locs } = await db.from('wf_locations').select('*').order('name');
+  const { data: emps } = await db.from('wf_employees').select('*, wf_locations(name)').eq('active', true).order('name');
+  _locs = locs || [];
+  _emps = emps || [];
+  const sel = document.getElementById('login-emp');
+  _emps.forEach(e => {
+    const o = document.createElement('option');
+    o.value = e.id; o.textContent = e.name;
+    sel.appendChild(o);
+  });
+}
+init();
+
+// ============================================================
+// PIN LOGIN
+// ============================================================
+function pinKey(k) {
+  if (_pinBuf.length >= 4) return;
+  _pinBuf += k;
+  updateDots();
+  if (_pinBuf.length === 4) setTimeout(doLogin, 200);
+}
+function pinDel() {
+  _pinBuf = _pinBuf.slice(0, -1);
+  updateDots();
+}
+function updateDots() {
+  for (let i = 0; i < 4; i++)
+    document.getElementById('pd' + i).classList.toggle('filled', i < _pinBuf.length);
+}
+async function doLogin() {
+  const empId = document.getElementById('login-emp').value;
+  if (!empId) { document.getElementById('login-err').textContent = 'Bitte Mitarbeiter auswählen'; _pinBuf = ''; updateDots(); return; }
+  const emp = _emps.find(e => e.id === empId);
+  if (!emp || emp.pin !== _pinBuf) {
+    document.getElementById('login-err').textContent = 'Falscher PIN';
+    _pinBuf = ''; updateDots(); return;
+  }
+  document.getElementById('login-err').textContent = '';
+  currentEmp = emp;
+  currentLocId = emp.location_id;
+  currentLocName = emp.wf_locations?.name || '';
+  document.getElementById('menu-title').textContent = emp.name;
+  document.getElementById('menu-sub').textContent = currentLocName;
+  if (emp.is_admin) document.getElementById('admin-menu').style.display = 'block';
+  else document.getElementById('admin-menu').style.display = 'none';
+  navigate('screen-menu');
+  _pinBuf = ''; updateDots();
+}
+function doLogout() {
+  currentEmp = null; currentLocId = null;
+  _pinBuf = ''; updateDots();
+  document.getElementById('login-emp').value = '';
+  _screenStack = ['screen-login'];
+  showScreen('screen-login');
+}
+
+// ============================================================
+// NAVIGATION
+// ============================================================
+function navigate(id) {
+  _screenStack.push(id);
+  showScreen(id);
+}
+function goBack() {
+  if (_screenStack.length > 1) _screenStack.pop();
+  showScreen(_screenStack[_screenStack.length - 1]);
+}
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  window.scrollTo(0, 0);
+}
+
+// ============================================================
+// TAGESEINTRAG
+// ============================================================
+async function loadEntry() {
+  navigate('screen-entry');
+  const today = todayStr();
+  document.getElementById('entry-date-lbl').textContent = formatDate(today);
+  // Load existing entry
+  const { data: rows } = await db.from('wf_entries').select('*').eq('date', today).eq('employee_id', currentEmp.id).limit(1);
+  if (rows && rows.length > 0) {
+    _entryId = rows[0].id;
+    _entryVals = { terminliste: rows[0].terminliste, erschienen: rows[0].erschienen };
+  } else {
+    _entryId = null;
+    _entryVals = { terminliste: 0, erschienen: 0 };
+  }
+  document.getElementById('val-terminliste').textContent = _entryVals.terminliste;
+  document.getElementById('val-erschienen').textContent = _entryVals.erschienen;
+  loadTodayLists(today);
+}
+
+function stepChange(field, delta) {
+  _entryVals[field] = Math.max(0, (_entryVals[field] || 0) + delta);
+  document.getElementById('val-' + field).textContent = _entryVals[field];
+}
+
+async function saveEntry() {
+  const today = todayStr();
+  const row = { date: today, employee_id: currentEmp.id, location_id: currentLocId,
+    terminliste: _entryVals.terminliste, erschienen: _entryVals.erschienen };
+  if (_entryId) {
+    await db.from('wf_entries').update(row).eq('id', _entryId);
+  } else {
+    const { data } = await db.from('wf_entries').insert([row]).select();
+    if (data && data[0]) _entryId = data[0].id;
+  }
+  showToast('✅ Gespeichert');
+}
+
+async function loadTodayLists(date) {
+  const [{ data: abschl }, { data: nabschl }] = await Promise.all([
+    db.from('wf_abschluesse').select('*').eq('date', date).eq('employee_id', currentEmp.id).order('created_at'),
+    db.from('wf_nichtabschluss').select('*').eq('date', date).eq('employee_id', currentEmp.id).order('created_at')
+  ]);
+  const absEl = document.getElementById('abs-list-today');
+  if (!abschl || abschl.length === 0) { absEl.innerHTML = '<div style="color:var(--muted);font-size:13px;text-align:center;padding:10px">Noch keine Abschlüsse</div>'; }
+  else absEl.innerHTML = abschl.map(a => `
+    <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--border)">
+      <div>
+        <div style="font-weight:700;">${a.member_name || '–'}</div>
+        <div style="font-size:12px;color:var(--muted);">${a.tarif} · ${a.laufzeit_monate} Mo. · ${eur(a.gesamt_umsatz)}</div>
+      </div>
+      <button class="btn btn-sm btn-danger" onclick="deleteAbs('${a.id}')">✕</button>
+    </div>`).join('');
+  const nabEl = document.getElementById('nab-list-today');
+  if (!nabschl || nabschl.length === 0) { nabEl.innerHTML = '<div style="color:var(--muted);font-size:13px;text-align:center;padding:10px">Noch keine Einträge</div>'; }
+  else nabEl.innerHTML = nabschl.map(n => `
+    <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--border)">
+      <div>
+        <div style="font-weight:700;">${n.member_name || '–'}</div>
+        <div style="font-size:12px;color:var(--muted);">${n.grund || 'kein Grund'}</div>
+      </div>
+      <button class="btn btn-sm btn-danger" onclick="deleteNab('${n.id}')">✕</button>
+    </div>`).join('');
+}
+
+async function deleteAbs(id) {
+  await db.from('wf_abschluesse').delete().eq('id', id);
+  loadTodayLists(todayStr());
+}
+async function deleteNab(id) {
+  await db.from('wf_nichtabschluss').delete().eq('id', id);
+  loadTodayLists(todayStr());
+}
+
+// ============================================================
+// ABSCHLUSS FORM
+// ============================================================
+function loadAbschlussForm() {
+  _selTarif = null; _selLaufzeit = null;
+  document.getElementById('abs-member-name').value = '';
+  document.getElementById('abs-startpaket').value = '0';
+  document.getElementById('addon-egym').checked = false;
+  document.getElementById('addon-getraenke').checked = false;
+  document.getElementById('addon-sauna').checked = false;
+  document.getElementById('addon-five').checked = false;
+  document.getElementById('sauna-preis').value = '';
+  document.getElementById('sauna-preis-row').style.display = 'none';
+  document.getElementById('price-preview').style.display = 'none';
+  document.querySelectorAll('#tarif-opts .opt-btn, #laufzeit-opts .opt-btn').forEach(b => b.classList.remove('sel'));
+  navigate('screen-abschluss-form');
+}
+
+function selectTarif(t, el) {
+  _selTarif = t;
+  document.querySelectorAll('#tarif-opts .opt-btn').forEach(b => b.classList.remove('sel'));
+  el.classList.add('sel');
+  calcAbschluss();
+}
+function selectLaufzeit(l, el) {
+  _selLaufzeit = l;
+  document.querySelectorAll('#laufzeit-opts .opt-btn').forEach(b => b.classList.remove('sel'));
+  el.classList.add('sel');
+  calcAbschluss();
+}
+
+function calcAbschluss() {
+  const saunaCheck = document.getElementById('addon-sauna').checked;
+  document.getElementById('sauna-preis-row').style.display = saunaCheck ? 'block' : 'none';
+  if (!_selTarif || !_selLaufzeit) return;
+  const wochen = LAUFZEIT_WOCHEN[_selLaufzeit];
+  let wp = PREISE[_selTarif][_selLaufzeit];
+  if (document.getElementById('addon-egym').checked) wp += ADDON_EGYM;
+  if (document.getElementById('addon-getraenke').checked) wp += ADDON_GETRAENKE;
+  if (saunaCheck) wp += parseFloat(document.getElementById('sauna-preis').value || 0);
+  const five = document.getElementById('addon-five').checked ? FIVE_PREIS : 0;
+  const start = parseFloat(document.getElementById('abs-startpaket').value || 0);
+  const gesamt = wp * wochen + five + start;
+  document.getElementById('price-preview').style.display = 'block';
+  document.getElementById('price-big').textContent = eur(gesamt);
+  document.getElementById('price-detail').textContent = `${eur(wp)}/Wo. × ${wochen} Wo.${five ? ' + five' : ''}${start ? ' + Startpaket' : ''}`;
+}
+
+async function submitAbschluss() {
+  if (!_selTarif || !_selLaufzeit) { showToast('Bitte Tarif und Laufzeit wählen'); return; }
+  const wochen = LAUFZEIT_WOCHEN[_selLaufzeit];
+  let wp = PREISE[_selTarif][_selLaufzeit];
+  const egym = document.getElementById('addon-egym').checked;
+  const getr = document.getElementById('addon-getraenke').checked;
+  const sauna = document.getElementById('addon-sauna').checked;
+  const saunaPreis = sauna ? parseFloat(document.getElementById('sauna-preis').value || 0) : 0;
+  const five = document.getElementById('addon-five').checked;
+  const start = parseFloat(document.getElementById('abs-startpaket').value || 0);
+  if (egym) wp += ADDON_EGYM;
+  if (getr) wp += ADDON_GETRAENKE;
+  if (sauna) wp += saunaPreis;
+  const gesamt = wp * wochen + (five ? FIVE_PREIS : 0) + start;
+  const row = {
+    date: todayStr(), employee_id: currentEmp.id, location_id: currentLocId,
+    member_name: document.getElementById('abs-member-name').value.trim(),
+    tarif: _selTarif, laufzeit_monate: _selLaufzeit,
+    wochenpreis: PREISE[_selTarif][_selLaufzeit],
+    addon_egym: egym, addon_getraenke: getr, addon_sauna: sauna, sauna_preis: saunaPreis,
+    five, five_betrag: five ? FIVE_PREIS : 0, startpaket: start, gesamt_umsatz: gesamt
+  };
+  const { error } = await db.from('wf_abschluesse').insert([row]);
+  if (error) { showToast('❌ Fehler: ' + error.message); return; }
+  showToast('✅ Abschluss gespeichert');
+  goBack();
+  loadTodayLists(todayStr());
+}
+
+// ============================================================
+// NICHT-ABSCHLUSS FORM
+// ============================================================
+function loadNichtAbschlussForm() {
+  document.getElementById('nab-member-name').value = '';
+  document.getElementById('nab-grund').value = '';
+  navigate('screen-nichtabschluss-form');
+}
+async function submitNichtabschluss() {
+  const row = {
+    date: todayStr(), employee_id: currentEmp.id, location_id: currentLocId,
+    member_name: document.getElementById('nab-member-name').value.trim(),
+    grund: document.getElementById('nab-grund').value.trim()
+  };
+  const { error } = await db.from('wf_nichtabschluss').insert([row]);
+  if (error) { showToast('❌ Fehler: ' + error.message); return; }
+  showToast('✅ Gespeichert');
+  goBack();
+  loadTodayLists(todayStr());
+}
+
+// ============================================================
+// STATS
+// ============================================================
+async function loadStats() {
+  navigate('screen-stats');
+  document.getElementById('stats-content').innerHTML = '<div class="spinner">Lade …</div>';
+  const now = new Date(); const today = todayStr();
+  const year = now.getFullYear();
+  const ytdStart = `${year}-01-01`;
+  const weekStart = getMonday(now);
+  const weekEnd = getFriday(now);
+  const monthStart = `${year}-${String(now.getMonth()+1).padStart(2,'0')}-01`;
+  const monthEnd = lastDayOfMonth(year, now.getMonth()+1);
+  const eid = currentEmp.id;
+  const [
+    {data: entryToday}, {data: absToday}, {data: absWeek},
+    {data: absMonth}, {data: absYtd},
+    {data: nabToday}, {data: nabWeek}, {data: nabMonth},
+    {data: ziel}
+  ] = await Promise.all([
+    db.from('wf_entries').select('*').eq('date',today).eq('employee_id',eid).limit(1),
+    db.from('wf_abschluesse').select('*').eq('employee_id',eid).eq('date',today),
+    db.from('wf_abschluesse').select('*').eq('employee_id',eid).gte('date',weekStart).lte('date',weekEnd),
+    db.from('wf_abschluesse').select('*').eq('employee_id',eid).gte('date',monthStart).lte('date',monthEnd),
+    db.from('wf_abschluesse').select('gesamt_umsatz').eq('employee_id',eid).gte('date',ytdStart).lte('date',today),
+    db.from('wf_nichtabschluss').select('id').eq('employee_id',eid).eq('date',today),
+    db.from('wf_nichtabschluss').select('id').eq('employee_id',eid).gte('date',weekStart).lte('date',weekEnd),
+    db.from('wf_nichtabschluss').select('id').eq('employee_id',eid).gte('date',monthStart).lte('date',monthEnd),
+    db.from('wf_ziele').select('*').eq('location_id',currentLocId).eq('year',year).eq('month',now.getMonth()+1).limit(1)
+  ]);
+  const er = entryToday?.[0];
+  const tl = er?.terminliste||0, ersch = er?.erschienen||0;
+  const eq = tl>0 ? Math.round(ersch/tl*100) : 0;
+  const absT = absToday?.length||0, nabT = nabToday?.length||0;
+  const aqT = (absT+nabT)>0 ? Math.round(absT/(absT+nabT)*100) : 0;
+  const umsatzT = (absToday||[]).reduce((s,a)=>s+(a.gesamt_umsatz||0),0);
+  const absW = absWeek?.length||0, nabW = nabWeek?.length||0;
+  const aqW = (absW+nabW)>0 ? Math.round(absW/(absW+nabW)*100) : 0;
+  const umsatzW = (absWeek||[]).reduce((s,a)=>s+(a.gesamt_umsatz||0),0);
+  const absM = absMonth?.length||0, nabM = nabMonth?.length||0;
+  const aqM = (absM+nabM)>0 ? Math.round(absM/(absM+nabM)*100) : 0;
+  const umsatzM = (absMonth||[]).reduce((s,a)=>s+(a.gesamt_umsatz||0),0);
+  const ytdUmsatz = (absYtd||[]).reduce((s,a)=>s+(a.gesamt_umsatz||0),0);
+  const monatsziel = ziel?.[0]?.ziel_abos||0;
+  const wochenziel = monatsziel>0 ? Math.round(monatsziel/4.3) : 0;
+  document.getElementById('stats-content').innerHTML = `
+    <div class="ytd-banner">
+      <div><div class="ytd-lbl">YTD Umsatz ${year}</div><div class="ytd-num">${eur(ytdUmsatz)}</div></div>
+      <div style="text-align:right"><div class="ytd-lbl">YTD Abschlüsse</div><div class="ytd-num">${(absYtd||[]).length}</div></div>
+    </div>
+    <div style="padding:10px 12px 4px;font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase">Heute</div>
+    <div class="stat-grid">
+      <div class="stat-box"><div class="stat-val">${eq}%</div><div class="stat-lbl">EQ (${ersch}/${tl})</div></div>
+      <div class="stat-box"><div class="stat-val">${aqT}%</div><div class="stat-lbl">AQ (${absT}/${absT+nabT})</div></div>
+      <div class="stat-box full"><div class="stat-val">${eur(umsatzT)}</div><div class="stat-lbl">Umsatz heute</div></div>
+    </div>
+    <div style="padding:10px 12px 4px;font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase">Diese Woche</div>
+    <div class="stat-grid">
+      <div class="stat-box"><div class="stat-val">${absW}</div><div class="stat-lbl">Abschlüsse</div></div>
+      <div class="stat-box"><div class="stat-val">${aqW}%</div><div class="stat-lbl">AQ</div></div>
+      <div class="stat-box"><div class="stat-val">${eur(umsatzW)}</div><div class="stat-lbl">Umsatz</div></div>
+      <div class="stat-box"><div class="stat-val">${Math.max(0,wochenziel-absW)}</div><div class="stat-lbl">Ziel Rest</div></div>
+    </div>
+    <div style="padding:10px 12px 4px;font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase">Dieser Monat</div>
+    <div class="stat-grid">
+      <div class="stat-box"><div class="stat-val">${absM}</div><div class="stat-lbl">Abschlüsse</div></div>
+      <div class="stat-box"><div class="stat-val">${aqM}%</div><div class="stat-lbl">AQ</div></div>
+      <div class="stat-box"><div class="stat-val">${eur(umsatzM)}</div><div class="stat-lbl">Umsatz</div></div>
+      <div class="stat-box"><div class="stat-val">${Math.max(0,monatsziel-absM)}</div><div class="stat-lbl">Ziel Rest</div></div>
+    </div>
+    ${monatsziel>0?`<div class="card"><div class="card-title">Monatsziel Fortschritt</div>
+      <div class="prog-bar"><div class="prog-fill" style="width:${Math.min(100,Math.round(absM/monatsziel*100))}%"></div></div>
+      <div class="prog-labels"><span>${absM} Abschlüsse</span><span>Ziel: ${monatsziel}</span></div></div>`:''}
+  `;
+}
+
+// ============================================================
+// ADMIN
+// ============================================================
+async function loadAdmin() {
+  navigate('screen-admin');
+  const locSel = document.getElementById('admin-loc-sel');
+  locSel.innerHTML = '<option value="all">Alle Standorte</option>';
+  _locs.forEach(l => {
+    const o = document.createElement('option');
+    o.value = l.id; o.textContent = l.name;
+    locSel.appendChild(o);
+  });
+  await renderAdminTab();
+}
+
+function setAdminTab(tab, el) {
+  _adminTab = tab;
+  document.querySelectorAll('.tabs .tab').forEach(t => t.classList.remove('active'));
+  el.classList.add('active');
+  renderAdminTab();
+}
+
+async function renderAdminTab() {
+  document.getElementById('admin-content').innerHTML = '<div class="spinner">Lade …</div>';
+  const locId = document.getElementById('admin-loc-sel').value;
+  const now = new Date(); const today = todayStr();
+  const year = now.getFullYear();
+  let fromDate, toDate;
+  if (_adminTab === 'heute') { fromDate = toDate = today; }
+  else if (_adminTab === 'woche') { fromDate = getMonday(now); toDate = getFriday(now); }
+  else if (_adminTab === 'monat') { fromDate = `${year}-${String(now.getMonth()+1).padStart(2,'0')}-01`; toDate = lastDayOfMonth(year,now.getMonth()+1); }
+  else { fromDate = `${year}-01-01`; toDate = today; }
+
+  let entQ = db.from('wf_entries').select('*,wf_employees(name)').gte('date',fromDate).lte('date',toDate);
+  let absQ = db.from('wf_abschluesse').select('*,wf_employees(name)').gte('date',fromDate).lte('date',toDate);
+  let nabQ = db.from('wf_nichtabschluss').select('*,wf_employees(name)').gte('date',fromDate).lte('date',toDate);
+  if (locId !== 'all') {
+    entQ = entQ.eq('location_id', locId);
+    absQ = absQ.eq('location_id', locId);
+    nabQ = nabQ.eq('location_id', locId);
+  }
+  const [{data:entries},{data:abschl},{data:nabschl}] = await Promise.all([entQ,absQ,nabQ]);
+  _adminAbschl = abschl||[];
+  _adminNabschl = nabschl||[];
+
+  const empMap = {};
+  const getE = (id, name) => { if (!empMap[id]) empMap[id]={name,tl:0,er:0,ab:0,nab:0,umsatz:0,five:0}; return empMap[id]; };
+  (entries||[]).forEach(e=>{ const r=getE(e.employee_id,e.wf_employees?.name||'?'); r.tl+=e.terminliste||0; r.er+=e.erschienen||0; });
+  (abschl||[]).forEach(a=>{ const r=getE(a.employee_id,a.wf_employees?.name||'?'); r.ab++; r.umsatz+=a.gesamt_umsatz||0; r.five+=a.five_betrag||0; });
+  (nabschl||[]).forEach(n=>{ getE(n.employee_id,n.wf_employees?.name||'?').nab++; });
+
+  const rows = Object.values(empMap);
+  const totTl=rows.reduce((s,r)=>s+r.tl,0);
+  const totEr=rows.reduce((s,r)=>s+r.er,0);
+  const totAb=rows.reduce((s,r)=>s+r.ab,0);
+  const totNab=rows.reduce((s,r)=>s+r.nab,0);
+  const totUm=rows.reduce((s,r)=>s+r.umsatz,0);
+
+  document.getElementById('admin-content').innerHTML = `
+    <div class="tbl-scroll" style="margin:10px 12px">
+    <table class="tbl">
+      <thead><tr><th>Mitarbeiter</th><th>TL</th><th>EQ</th><th>AQ</th><th>Umsatz</th></tr></thead>
+      <tbody>
+        ${rows.map(r=>`<tr>
+          <td>${r.name}</td>
+          <td>${r.tl>0?Math.round(r.er/r.tl*100)+'%':'–'}</td>
+          <td>${r.tl>0?Math.round(r.er/r.tl*100)+'%':'–'}</td>
+          <td>${(r.ab+r.nab)>0?Math.round(r.ab/(r.ab+r.nab)*100)+'%':'–'}</td>
+          <td>${eur(r.umsatz)}</td>
+        </tr>`).join('')}
+        <tr class="tot"><td>Gesamt</td><td>${totTl>0?Math.round(totEr/totTl*100)+'%':'–'}</td><td>–</td><td>${(totAb+totNab)>0?Math.round(totAb/(totAb+totNab)*100)+'%':'–'}</td><td>${eur(totUm)}</td></tr>
+      </tbody>
+    </table></div>`;
+
+  // Abschluss-Liste
+  document.getElementById('admin-abs-rows').innerHTML = _adminAbschl.length===0
+    ? '<div style="color:var(--muted);font-size:13px;text-align:center;padding:10px">Keine Abschlüsse</div>'
+    : _adminAbschl.map(a=>`<div style="padding:8px 0;border-bottom:1px solid var(--border)">
+        <div style="font-weight:700;">${a.member_name||'–'}</div>
+        <div style="font-size:12px;color:var(--muted);">${a.wf_employees?.name||''} · ${a.tarif} ${a.laufzeit_monate}Mo. · ${eur(a.gesamt_umsatz)}</div>
+      </div>`).join('');
+
+  // Nicht-Abschluss-Liste
+  document.getElementById('admin-nab-rows').innerHTML = _adminNabschl.length===0
+    ? '<div style="color:var(--muted);font-size:13px;text-align:center;padding:10px">Keine Einträge</div>'
+    : _adminNabschl.map(n=>`<div style="padding:8px 0;border-bottom:1px solid var(--border)">
+        <div style="font-weight:700;">${n.member_name||'–'}</div>
+        <div style="font-size:12px;color:var(--muted);">${n.wf_employees?.name||''} · ${n.grund||'kein Grund'}</div>
+      </div>`).join('');
+}
+
+window._exportData = function(type) {
+  if (type === 'abs') {
+    const csv = 'Datum,Mitarbeiter,Mitglied,Tarif,Laufzeit,Umsatz,five\n' +
+      _adminAbschl.map(a=>`${a.date},${a.wf_employees?.name||''},${a.member_name||''},${a.tarif},${a.laufzeit_monate} Mo.,${(a.gesamt_umsatz||0).toFixed(2)},${a.five_betrag||0}`).join('\n');
+    dlCsv(csv, 'abschluesse.csv');
+  } else {
+    const csv = 'Datum,Mitarbeiter,Name,Grund\n' +
+      _adminNabschl.map(n=>`${n.date},${n.wf_employees?.name||''},${n.member_name||''},${(n.grund||'').replace(/,/g,';')}`).join('\n');
+    dlCsv(csv, 'nichtabschluesse.csv');
+  }
+};
+function dlCsv(csv, filename) {
+  const a = document.createElement('a');
+  a.href = 'data:text/csv;charset=utf-8,' + encodeURIComponent(csv);
+  a.download = filename; a.click();
+}
+
+// ============================================================
+// ZIELE
+// ============================================================
+async function loadZiele() {
+  navigate('screen-ziele');
+  document.getElementById('ziele-content').innerHTML = '<div class="spinner">Lade …</div>';
+  const now = new Date(); const year = now.getFullYear(); const month = now.getMonth()+1;
+  const locSel = `<select id="ziel-loc" onchange="loadZielForLoc()">${_locs.map(l=>`<option value="${l.id}">${l.name}</option>`).join('')}</select>`;
+  document.getElementById('ziele-content').innerHTML = `
+    <div class="card">
+      <div class="card-title">Standort</div>
+      ${locSel}
+      <div id="ziel-form-wrap" style="margin-top:12px"></div>
+    </div>
+    <div id="ziel-dist-wrap"></div>`;
+  loadZielForLoc();
+}
+
+async function loadZielForLoc() {
+  const locId = document.getElementById('ziel-loc').value;
+  const now = new Date(); const year = now.getFullYear(); const month = now.getMonth()+1;
+  const {data} = await db.from('wf_ziele').select('*').eq('location_id',locId).eq('year',year).eq('month',month).limit(1);
+  const abos = data?.[0]?.ziel_abos || 0;
+  document.getElementById('ziel-form-wrap').innerHTML = `
+    <label>Monats-Ziel (Abschlüsse) – ${monthName(month)} ${year}</label>
+    <input type="number" id="ziel-abos" value="${abos}" min="0" step="1">
+    <button class="btn btn-primary" onclick="saveZiel()">Ziel speichern</button>`;
+  renderZielDist(year, month, abos);
+}
+
+function renderZielDist(year, month, abos) {
+  if (!abos) { document.getElementById('ziel-dist-wrap').innerHTML=''; return; }
+  const weeks = getMonthWeeks(year, month);
+  document.getElementById('ziel-dist-wrap').innerHTML = `
+    <div class="card">
+      <div class="card-title">Wochenverteilung</div>
+      ${weeks.map(w=>`
+        <div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border)">
+          <div style="font-size:13px;">KW ${w.kw} (${w.days} Tage)</div>
+          <div style="font-weight:700;">${Math.round(abos/totalMonFri(year,month)*w.days)} Abschlüsse</div>
+        </div>`).join('')}
+    </div>`;
+}
+
+async function saveZiel() {
+  const locId = document.getElementById('ziel-loc').value;
+  const abos = parseInt(document.getElementById('ziel-abos').value)||0;
+  const now = new Date(); const year=now.getFullYear(); const month=now.getMonth()+1;
+  const {error} = await db.from('wf_ziele').upsert([{location_id:locId,year,month,ziel_abos:abos}],{onConflict:'location_id,year,month'});
+  if(error){showToast('❌ '+error.message);return;}
+  showToast('✅ Ziel gespeichert');
+  renderZielDist(year,month,abos);
+}
+
+// ============================================================
+// MITARBEITER
+// ============================================================
+async function loadEmployees() {
+  navigate('screen-employees');
+  document.getElementById('add-emp-form').style.display='none';
+  const el = document.getElementById('emp-list-content');
+  el.innerHTML='<div class="spinner">Lade …</div>';
+  const {data} = await db.from('wf_employees').select('*,wf_locations(name)').eq('active',true).order('name');
+  el.innerHTML = (data||[]).map(e=>`
+    <div class="card" style="margin-bottom:6px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;">
+        <div>
+          <div style="font-weight:700;">${e.name} ${e.is_admin?'★':''}</div>
+          <div style="font-size:12px;color:var(--muted);">${e.wf_locations?.name||'–'}</div>
+        </div>
+        <button class="btn btn-sm btn-secondary" onclick="editPin('${e.id}','${e.name}')">PIN ändern</button>
+      </div>
+    </div>`).join('');
+  const nl = document.getElementById('new-emp-loc');
+  nl.innerHTML='';
+  _locs.forEach(l=>{const o=document.createElement('option');o.value=l.id;o.textContent=l.name;nl.appendChild(o);});
+}
+
+function showAddEmpForm() {
+  document.getElementById('add-emp-form').style.display='block';
+  document.getElementById('new-emp-vorname').focus();
+}
+
+async function saveEmployee() {
+  const vorname  = document.getElementById('new-emp-vorname').value.trim();
+  const nachname = document.getElementById('new-emp-nachname').value.trim();
+  const name = nachname ? `${vorname} ${nachname}` : vorname;
+  const locId = document.getElementById('new-emp-loc').value;
+  const pin   = document.getElementById('new-emp-pin').value.trim();
+  const isAdmin = document.getElementById('new-emp-admin').checked;
+  if(!vorname||!pin||pin.length!==4){showToast('Vorname und 4-stelliger PIN erforderlich');return;}
+  const {error} = await db.from('wf_employees').insert([{name,location_id:locId,pin,is_admin:isAdmin,active:true}]);
+  if(error){showToast('❌ Fehler: '+error.message);return;}
+  showToast('✅ Mitarbeiter hinzugefügt');
+  document.getElementById('add-emp-form').style.display='none';
+  document.getElementById('new-emp-vorname').value='';
+  document.getElementById('new-emp-nachname').value='';
+  document.getElementById('new-emp-pin').value='';
+  await loadEmployees();
+  const {data:emps}=await db.from('wf_employees').select('*,wf_locations(name)').eq('active',true).order('name');
+  _emps=emps||[];
+}
+
+async function editPin(id, name) {
+  const newPin = prompt(`Neuer PIN für ${name} (4 Stellen):`);
+  if(!newPin||newPin.length!==4||isNaN(newPin)){showToast('Ungültiger PIN');return;}
+  await db.from('wf_employees').update({pin:newPin}).eq('id',id);
+  showToast('✅ PIN geändert');
+}
+
+// ============================================================
+// HELPERS
+// ============================================================
+function todayStr() { return new Date().toISOString().slice(0,10); }
+function eur(v) { return (v||0).toLocaleString('de-DE',{style:'currency',currency:'EUR'}); }
+function formatDate(d) { const p=d.split('-'); return `${p[2]}.${p[1]}.${p[0]}`; }
+function getMonday(d) { const dd=new Date(d); dd.setDate(dd.getDate()-((dd.getDay()+6)%7)); return dd.toISOString().slice(0,10); }
+function getFriday(d) { const dd=new Date(d); dd.setDate(dd.getDate()+(4-((dd.getDay()+6)%7+7)%7+7)%7); return dd.toISOString().slice(0,10); }
+function lastDayOfMonth(y,m) { return new Date(y,m,0).toISOString().slice(0,10); }
+function monthName(m) { return ['Jan','Feb','Mär','Apr','Mai','Jun','Jul','Aug','Sep','Okt','Nov','Dez'][m-1]; }
+function totalMonFri(y,m) {
+  let c=0; const d=new Date(y,m-1,1);
+  while(d.getMonth()===m-1){if(d.getDay()>=1&&d.getDay()<=5)c++;d.setDate(d.getDate()+1);}
+  return c||1;
+}
+function getMonthWeeks(y,m) {
+  const weeks=[]; let d=new Date(y,m-1,1);
+  while(d.getMonth()===m-1){
+    if(d.getDay()>=1&&d.getDay()<=5){
+      const kw=getISOWeek(d);
+      const ex=weeks.find(w=>w.kw===kw);
+      if(ex)ex.days++;else weeks.push({kw,days:1});
+    }
+    d.setDate(d.getDate()+1);
+  }
+  return weeks;
+}
+function getISOWeek(d) {
+  const date=new Date(d); date.setHours(0,0,0,0);
+  date.setDate(date.getDate()+3-(date.getDay()+6)%7);
+  const w1=new Date(date.getFullYear(),0,4);
+  return 1+Math.round(((date-w1)/86400000-3+(w1.getDay()+6)%7)/7);
+}
+function showToast(msg) {
+  const t=document.getElementById('toast');
+  t.textContent=msg; t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'),2500);
+}
+</script>
+</body>
+</html>
