@@ -921,7 +921,10 @@ async function loadEmployees() {
           <div style="font-weight:700;">${e.name} ${e.is_admin?'★':''}</div>
           <div style="font-size:12px;color:var(--muted);">${e.wf_locations?.name||'–'}</div>
         </div>
-        <button class="btn btn-sm btn-secondary" onclick="editPin('${e.id}','${e.name}')">PIN ändern</button>
+        <div style="display:flex;gap:6px;">
+          <button class="btn btn-sm btn-secondary" onclick="editPin('${e.id}','${e.name}')">PIN</button>
+          <button class="btn btn-sm btn-danger" onclick="deactivateEmployee('${e.id}','${e.name}')">✕</button>
+        </div>
       </div>
     </div>`).join('');
   const nl = document.getElementById('new-emp-loc');
@@ -952,6 +955,13 @@ async function saveEmployee() {
   await loadEmployees();
   const {data:emps}=await db.from('wf_employees').select('*,wf_locations(name)').eq('active',true).order('name');
   _emps=emps||[];
+}
+
+async function deactivateEmployee(id, name) {
+  if (!confirm(`${name} wirklich deaktivieren?`)) return;
+  await db.from('wf_employees').update({active: false}).eq('id', id);
+  showToast('✅ Mitarbeiter deaktiviert');
+  loadEmployees();
 }
 
 async function editPin(id, name) {
