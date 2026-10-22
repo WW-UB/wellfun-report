@@ -659,13 +659,13 @@ async function loadStats() {
   const tl = er?.terminliste||0, ersch = er?.erschienen||0;
   const eq = tl>0 ? Math.round(ersch/tl*100) : 0;
   const absT = absToday?.length||0, nabT = nabToday?.length||0;
-  const aqT = (absT+nabT)>0 ? Math.round(absT/(absT+nabT)*100) : 0;
+  const aqT = ersch>0 ? Math.round(absT/ersch*100) : 0;
   const umsatzT = (absToday||[]).reduce((s,a)=>s+(a.gesamt_umsatz||0),0);
   const absW = absWeek?.length||0, nabW = nabWeek?.length||0;
-  const aqW = (absW+nabW)>0 ? Math.round(absW/(absW+nabW)*100) : 0;
+  const aqW = ersch>0 ? Math.round(absW/ersch*100) : 0;
   const umsatzW = (absWeek||[]).reduce((s,a)=>s+(a.gesamt_umsatz||0),0);
   const absM = absMonth?.length||0, nabM = nabMonth?.length||0;
-  const aqM = (absM+nabM)>0 ? Math.round(absM/(absM+nabM)*100) : 0;
+  const aqM = ersch>0 ? Math.round(absM/ersch*100) : 0;
   const umsatzM = (absMonth||[]).reduce((s,a)=>s+(a.gesamt_umsatz||0),0);
   const ytdUmsatz = (absYtd||[]).reduce((s,a)=>s+(a.gesamt_umsatz||0),0);
   const monatsziel = ziel?.[0]?.ziel_abos||0;
@@ -761,7 +761,7 @@ async function renderAdminTab() {
   const totUm=rows.reduce((s,r)=>s+r.umsatz,0);
 
   // Ranglisten
-  const byAq = [...rows].filter(r=>r.ab+r.nab>0).sort((a,b)=>((b.ab/(b.ab+b.nab))-(a.ab/(a.ab+a.nab))));
+  const byAq = [...rows].filter(r=>r.er>0).sort((a,b)=>(b.ab/b.er)-(a.ab/a.er));
   const byUm = [...rows].filter(r=>r.umsatz>0).sort((a,b)=>b.umsatz-a.umsatz);
 
   document.getElementById('admin-content').innerHTML = `
@@ -772,18 +772,18 @@ async function renderAdminTab() {
         ${rows.map(r=>`<tr>
           <td>${r.name}</td>
           <td>${r.tl>0?Math.round(r.er/r.tl*100)+'%':'–'}</td>
-          <td>${(r.ab+r.nab)>0?Math.round(r.ab/(r.ab+r.nab)*100)+'%':'–'}</td>
+          <td>${r.er>0?Math.round(r.ab/r.er*100)+'%':'–'}</td>
           <td>${r.ab}</td>
           <td>${eur(r.umsatz)}</td>
         </tr>`).join('')}
-        <tr class="tot"><td>Gesamt</td><td>${totTl>0?Math.round(totEr/totTl*100)+'%':'–'}</td><td>${(totAb+totNab)>0?Math.round(totAb/(totAb+totNab)*100)+'%':'–'}</td><td>${totAb}</td><td>${eur(totUm)}</td></tr>
+        <tr class="tot"><td>Gesamt</td><td>${totTl>0?Math.round(totEr/totTl*100)+'%':'–'}</td><td>${totEr>0?Math.round(totAb/totEr*100)+'%':'–'}</td><td>${totAb}</td><td>${eur(totUm)}</td></tr>
       </tbody>
     </table></div>
 
     ${byAq.length>0?`<div style="padding:6px 12px 2px;font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase">🏆 Rangliste AQ</div>
     <div class="tbl-scroll" style="margin:0 12px 10px">
     <table class="tbl"><thead><tr><th style="text-align:left">#</th><th>Mitarbeiter</th><th>AQ</th><th>Abs.</th></tr></thead><tbody>
-    ${byAq.map((r,i)=>`<tr><td style="text-align:left;color:var(--muted)">${i+1}</td><td>${r.name}</td><td>${Math.round(r.ab/(r.ab+r.nab)*100)}%</td><td>${r.ab}</td></tr>`).join('')}
+    ${byAq.map((r,i)=>`<tr><td style="text-align:left;color:var(--muted)">${i+1}</td><td>${r.name}</td><td>${Math.round(r.ab/r.er*100)}%</td><td>${r.ab}</td></tr>`).join('')}
     </tbody></table></div>`:''}
 
     ${byUm.length>0?`<div style="padding:6px 12px 2px;font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase">💰 Rangliste Umsatz</div>
