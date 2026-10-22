@@ -670,29 +670,30 @@ async function loadStats() {
   const ytdUmsatz = (absYtd||[]).reduce((s,a)=>s+(a.gesamt_umsatz||0),0);
   const monatsziel = ziel?.[0]?.ziel_abos||0;
   const wochenziel = monatsziel>0 ? Math.round(monatsziel/4.3) : 0;
+  const isAdmin = currentEmp.is_admin;
   document.getElementById('stats-content').innerHTML = `
     <div class="ytd-banner">
-      <div><div class="ytd-lbl">YTD Umsatz ${year}</div><div class="ytd-num">${eur(ytdUmsatz)}</div></div>
+      ${isAdmin ? `<div><div class="ytd-lbl">YTD Umsatz ${year}</div><div class="ytd-num">${eur(ytdUmsatz)}</div></div>` : ''}
       <div style="text-align:right"><div class="ytd-lbl">YTD Abschlüsse</div><div class="ytd-num">${(absYtd||[]).length}</div></div>
     </div>
     <div style="padding:10px 12px 4px;font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase">Heute</div>
     <div class="stat-grid">
       <div class="stat-box"><div class="stat-val">${eq}%</div><div class="stat-lbl">EQ (${ersch}/${tl})</div></div>
       <div class="stat-box"><div class="stat-val">${aqT}%</div><div class="stat-lbl">AQ (${absT}/${absT+nabT})</div></div>
-      <div class="stat-box full"><div class="stat-val">${eur(umsatzT)}</div><div class="stat-lbl">Umsatz heute</div></div>
+      ${isAdmin ? `<div class="stat-box full"><div class="stat-val">${eur(umsatzT)}</div><div class="stat-lbl">Umsatz heute</div></div>` : ''}
     </div>
     <div style="padding:10px 12px 4px;font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase">Diese Woche</div>
     <div class="stat-grid">
       <div class="stat-box"><div class="stat-val">${absW}</div><div class="stat-lbl">Abschlüsse</div></div>
       <div class="stat-box"><div class="stat-val">${aqW}%</div><div class="stat-lbl">AQ</div></div>
-      <div class="stat-box"><div class="stat-val">${eur(umsatzW)}</div><div class="stat-lbl">Umsatz</div></div>
+      ${isAdmin ? `<div class="stat-box"><div class="stat-val">${eur(umsatzW)}</div><div class="stat-lbl">Umsatz</div></div>` : ''}
       <div class="stat-box"><div class="stat-val">${Math.max(0,wochenziel-absW)}</div><div class="stat-lbl">Ziel Rest</div></div>
     </div>
     <div style="padding:10px 12px 4px;font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase">Dieser Monat</div>
     <div class="stat-grid">
       <div class="stat-box"><div class="stat-val">${absM}</div><div class="stat-lbl">Abschlüsse</div></div>
       <div class="stat-box"><div class="stat-val">${aqM}%</div><div class="stat-lbl">AQ</div></div>
-      <div class="stat-box"><div class="stat-val">${eur(umsatzM)}</div><div class="stat-lbl">Umsatz</div></div>
+      ${isAdmin ? `<div class="stat-box"><div class="stat-val">${eur(umsatzM)}</div><div class="stat-lbl">Umsatz</div></div>` : ''}
       <div class="stat-box"><div class="stat-val">${Math.max(0,monatsziel-absM)}</div><div class="stat-lbl">Ziel Rest</div></div>
     </div>
     ${monatsziel>0?`<div class="card"><div class="card-title">Monatsziel Fortschritt</div>
@@ -759,37 +760,75 @@ async function renderAdminTab() {
   const totNab=rows.reduce((s,r)=>s+r.nab,0);
   const totUm=rows.reduce((s,r)=>s+r.umsatz,0);
 
+  // Ranglisten
+  const byAq = [...rows].filter(r=>r.ab+r.nab>0).sort((a,b)=>((b.ab/(b.ab+b.nab))-(a.ab/(a.ab+a.nab))));
+  const byUm = [...rows].filter(r=>r.umsatz>0).sort((a,b)=>b.umsatz-a.umsatz);
+
   document.getElementById('admin-content').innerHTML = `
     <div class="tbl-scroll" style="margin:10px 12px">
     <table class="tbl">
-      <thead><tr><th>Mitarbeiter</th><th>TL</th><th>EQ</th><th>AQ</th><th>Umsatz</th></tr></thead>
+      <thead><tr><th>Mitarbeiter</th><th>EQ</th><th>AQ</th><th>Abs.</th><th>Umsatz</th></tr></thead>
       <tbody>
         ${rows.map(r=>`<tr>
           <td>${r.name}</td>
           <td>${r.tl>0?Math.round(r.er/r.tl*100)+'%':'–'}</td>
-          <td>${r.tl>0?Math.round(r.er/r.tl*100)+'%':'–'}</td>
           <td>${(r.ab+r.nab)>0?Math.round(r.ab/(r.ab+r.nab)*100)+'%':'–'}</td>
+          <td>${r.ab}</td>
           <td>${eur(r.umsatz)}</td>
         </tr>`).join('')}
-        <tr class="tot"><td>Gesamt</td><td>${totTl>0?Math.round(totEr/totTl*100)+'%':'–'}</td><td>–</td><td>${(totAb+totNab)>0?Math.round(totAb/(totAb+totNab)*100)+'%':'–'}</td><td>${eur(totUm)}</td></tr>
+        <tr class="tot"><td>Gesamt</td><td>${totTl>0?Math.round(totEr/totTl*100)+'%':'–'}</td><td>${(totAb+totNab)>0?Math.round(totAb/(totAb+totNab)*100)+'%':'–'}</td><td>${totAb}</td><td>${eur(totUm)}</td></tr>
       </tbody>
-    </table></div>`;
+    </table></div>
 
-  // Abschluss-Liste
+    ${byAq.length>0?`<div style="padding:6px 12px 2px;font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase">🏆 Rangliste AQ</div>
+    <div class="tbl-scroll" style="margin:0 12px 10px">
+    <table class="tbl"><thead><tr><th style="text-align:left">#</th><th>Mitarbeiter</th><th>AQ</th><th>Abs.</th></tr></thead><tbody>
+    ${byAq.map((r,i)=>`<tr><td style="text-align:left;color:var(--muted)">${i+1}</td><td>${r.name}</td><td>${Math.round(r.ab/(r.ab+r.nab)*100)}%</td><td>${r.ab}</td></tr>`).join('')}
+    </tbody></table></div>`:''}
+
+    ${byUm.length>0?`<div style="padding:6px 12px 2px;font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase">💰 Rangliste Umsatz</div>
+    <div class="tbl-scroll" style="margin:0 12px 10px">
+    <table class="tbl"><thead><tr><th style="text-align:left">#</th><th>Mitarbeiter</th><th>Umsatz</th><th>Abs.</th></tr></thead><tbody>
+    ${byUm.map((r,i)=>`<tr><td style="text-align:left;color:var(--muted)">${i+1}</td><td>${r.name}</td><td>${eur(r.umsatz)}</td><td>${r.ab}</td></tr>`).join('')}
+    </tbody></table></div>`:''}
+  `;
+
+  // Abschluss-Liste mit Löschen
   document.getElementById('admin-abs-rows').innerHTML = _adminAbschl.length===0
     ? '<div style="color:var(--muted);font-size:13px;text-align:center;padding:10px">Keine Abschlüsse</div>'
-    : _adminAbschl.map(a=>`<div style="padding:8px 0;border-bottom:1px solid var(--border)">
-        <div style="font-weight:700;">${a.member_name||'–'}</div>
-        <div style="font-size:12px;color:var(--muted);">${a.wf_employees?.name||''} · ${a.tarif} ${a.laufzeit_monate}Mo. · ${eur(a.gesamt_umsatz)}</div>
+    : _adminAbschl.map(a=>`<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--border)">
+        <div>
+          <div style="font-weight:700;">${a.member_name||'–'}</div>
+          <div style="font-size:12px;color:var(--muted);">${a.wf_employees?.name||''} · ${a.tarif} ${a.laufzeit_monate}Mo. · ${eur(a.gesamt_umsatz)}</div>
+          <div style="font-size:11px;color:var(--muted);">${a.date}</div>
+        </div>
+        <button class="btn btn-sm btn-danger" onclick="adminDeleteAbs('${a.id}')">✕</button>
       </div>`).join('');
 
-  // Nicht-Abschluss-Liste
+  // Nicht-Abschluss-Liste mit Löschen
   document.getElementById('admin-nab-rows').innerHTML = _adminNabschl.length===0
     ? '<div style="color:var(--muted);font-size:13px;text-align:center;padding:10px">Keine Einträge</div>'
-    : _adminNabschl.map(n=>`<div style="padding:8px 0;border-bottom:1px solid var(--border)">
-        <div style="font-weight:700;">${n.member_name||'–'}</div>
-        <div style="font-size:12px;color:var(--muted);">${n.wf_employees?.name||''} · ${n.grund||'kein Grund'}</div>
+    : _adminNabschl.map(n=>`<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--border)">
+        <div>
+          <div style="font-weight:700;">${n.member_name||'–'}</div>
+          <div style="font-size:12px;color:var(--muted);">${n.wf_employees?.name||''} · ${n.grund||'kein Grund'}</div>
+          <div style="font-size:11px;color:var(--muted);">${n.date}</div>
+        </div>
+        <button class="btn btn-sm btn-danger" onclick="adminDeleteNab('${n.id}')">✕</button>
       </div>`).join('');
+}
+
+async function adminDeleteAbs(id) {
+  if (!confirm('Abschluss wirklich löschen?')) return;
+  await db.from('wf_abschluesse').delete().eq('id', id);
+  showToast('✅ Gelöscht');
+  renderAdminTab();
+}
+async function adminDeleteNab(id) {
+  if (!confirm('Eintrag wirklich löschen?')) return;
+  await db.from('wf_nichtabschluss').delete().eq('id', id);
+  showToast('✅ Gelöscht');
+  renderAdminTab();
 }
 
 window._exportData = function(type) {
@@ -807,6 +846,9 @@ function dlCsv(csv, filename) {
   const a = document.createElement('a');
   a.href = 'data:text/csv;charset=utf-8,' + encodeURIComponent(csv);
   a.download = filename; a.click();
+  setTimeout(() => {
+    window.location.href = 'mailto:?subject=Sales%20Report%20wellfun&body=Bitte%20die%20heruntergeladene%20CSV-Datei%20anh%C3%A4ngen.';
+  }, 800);
 }
 
 // ============================================================
