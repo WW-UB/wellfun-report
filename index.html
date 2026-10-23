@@ -311,6 +311,10 @@ input:checked+.tgl-s::after{left:22px}
     <div class="card-title">Nicht-Abschluss-Liste</div>
     <div id="admin-nab-rows"></div>
   </div>
+  <div class="card" id="admin-gabo-liste">
+    <div class="card-title">Gesundheitsabo-Liste</div>
+    <div id="admin-gabo-rows"></div>
+  </div>
 </div>
 
 <!-- ZIELE -->
@@ -437,7 +441,7 @@ let _screenStack = ['screen-login'];
 let _entryId = null, _entryVals = {terminliste:0, erschienen:0};
 let _selTarif = null, _selLaufzeit = null;
 let _adminTab = 'heute';
-let _adminAbschl = [], _adminNabschl = [];
+let _adminAbschl = [], _adminNabschl = [], _adminGabo = [];
 let _gaboId = null, _gaboVals = {gespraeche:0, abschluesse:0, rehakurs:0, teilnehmer:0, ansprache:0, terminierung:0};
 let _gaboRehakursDatum = '';
 
@@ -832,6 +836,7 @@ async function renderAdminTab() {
   const [{data:entries},{data:abschl},{data:nabschl},{data:gaboRows}] = await Promise.all([entQ,absQ,nabQ,gaboQ]);
   _adminAbschl = abschl||[];
   _adminNabschl = nabschl||[];
+  _adminGabo = gaboRows||[];
 
   const empMap = {};
   const getE = (id, name) => { if (!empMap[id]) empMap[id]={name,tl:0,er:0,ab:0,nab:0,umsatz:0,five:0}; return empMap[id]; };
@@ -923,6 +928,18 @@ async function renderAdminTab() {
         <button class="btn btn-sm btn-danger" onclick="adminDeleteAbs('${a.id}')">✕</button>
       </div>`).join('');
 
+  // Gesundheitsabo-Liste mit Löschen
+  document.getElementById('admin-gabo-rows').innerHTML = _adminGabo.length===0
+    ? '<div style="color:var(--muted);font-size:13px;text-align:center;padding:10px">Keine Einträge</div>'
+    : _adminGabo.map(g=>`<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--border)">
+        <div>
+          <div style="font-weight:700;">${g.wf_employees?.name||'–'}</div>
+          <div style="font-size:12px;color:var(--muted);">Gespr.: ${g.gespraeche} · Abschl.: ${g.abschluesse} · AQ: ${g.gespraeche>0?Math.round(g.abschluesse/g.gespraeche*100)+'%':'–'}</div>
+          <div style="font-size:11px;color:var(--muted);">${g.date}${g.rehakurs_datum?' · Rehakurs: '+g.rehakurs_datum:''}</div>
+        </div>
+        <button class="btn btn-sm btn-danger" onclick="adminDeleteGabo('${g.id}')">✕</button>
+      </div>`).join('');
+
   // Nicht-Abschluss-Liste mit Löschen
   document.getElementById('admin-nab-rows').innerHTML = _adminNabschl.length===0
     ? '<div style="color:var(--muted);font-size:13px;text-align:center;padding:10px">Keine Einträge</div>'
@@ -939,6 +956,12 @@ async function renderAdminTab() {
 async function adminDeleteAbs(id) {
   if (!confirm('Abschluss wirklich löschen?')) return;
   await db.from('wf_abschluesse').delete().eq('id', id);
+  showToast('✅ Gelöscht');
+  renderAdminTab();
+}
+async function adminDeleteGabo(id) {
+  if (!confirm('Gesundheitsabo-Eintrag wirklich löschen?')) return;
+  await db.from('wf_gesundheitsabo').delete().eq('id', id);
   showToast('✅ Gelöscht');
   renderAdminTab();
 }
