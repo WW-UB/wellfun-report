@@ -149,6 +149,10 @@ input:checked+.tgl-s::after{left:22px}
       <span class="menu-icon">📋</span>
       <div><div class="menu-label">Tageseintrag</div><div class="menu-sub">Terminliste &amp; Erschienen</div></div>
     </button>
+    <button class="menu-btn" onclick="loadGesundheitsabo()">
+      <span class="menu-icon">🏥</span>
+      <div><div class="menu-label">Gesundheitsabo</div><div class="menu-sub">Gespräche, Abschlüsse &amp; Rehakurs</div></div>
+    </button>
     <div class="menu-section">Statistik</div>
     <button class="menu-btn" onclick="loadStats()">
       <span class="menu-icon">📊</span>
@@ -342,6 +346,65 @@ input:checked+.tgl-s::after{left:22px}
   </div>
 </div>
 
+<!-- GESUNDHEITSABO -->
+<div class="screen" id="screen-gesundheitsabo">
+  <div class="hdr">
+    <button class="hdr-back" onclick="goBack()">←</button>
+    <div class="hdr-main"><div class="hdr-title">Gesundheitsabo</div><div class="hdr-sub" id="gabo-date-lbl"></div></div>
+  </div>
+  <div class="card">
+    <div class="card-title">Anzahl Gespräche</div>
+    <div class="stepper">
+      <button class="step-btn" onclick="stepChangeGabo('gespraeche',-1)">−</button>
+      <div class="step-val" id="gabo-gespraeche">0</div>
+      <button class="step-btn" onclick="stepChangeGabo('gespraeche',1)">+</button>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-title">Abschluss Gesundheitsabo</div>
+    <div class="stepper">
+      <button class="step-btn" onclick="stepChangeGabo('abschluesse',-1)">−</button>
+      <div class="step-val" id="gabo-abschluesse">0</div>
+      <button class="step-btn" onclick="stepChangeGabo('abschluesse',1)">+</button>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-title">Rehakursdurchführung</div>
+    <div class="stepper">
+      <button class="step-btn" onclick="stepChangeGabo('rehakurs',-1)">−</button>
+      <div class="step-val" id="gabo-rehakurs">0</div>
+      <button class="step-btn" onclick="stepChangeGabo('rehakurs',1)">+</button>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-title">Teilnehmer</div>
+    <div class="stepper">
+      <button class="step-btn" onclick="stepChangeGabo('teilnehmer',-1)">−</button>
+      <div class="step-val" id="gabo-teilnehmer">0</div>
+      <button class="step-btn" onclick="stepChangeGabo('teilnehmer',1)">+</button>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-title">Ansprache Probetraining</div>
+    <div class="stepper">
+      <button class="step-btn" onclick="stepChangeGabo('ansprache',-1)">−</button>
+      <div class="step-val" id="gabo-ansprache">0</div>
+      <button class="step-btn" onclick="stepChangeGabo('ansprache',1)">+</button>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-title">Terminierung</div>
+    <div class="stepper">
+      <button class="step-btn" onclick="stepChangeGabo('terminierung',-1)">−</button>
+      <div class="step-val" id="gabo-terminierung">0</div>
+      <button class="step-btn" onclick="stepChangeGabo('terminierung',1)">+</button>
+    </div>
+  </div>
+  <div style="padding:0 12px">
+    <button class="btn btn-primary" onclick="saveGesundheitsabo()">Speichern</button>
+  </div>
+</div>
+
 <div class="toast" id="toast"></div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -373,6 +436,7 @@ let _entryId = null, _entryVals = {terminliste:0, erschienen:0};
 let _selTarif = null, _selLaufzeit = null;
 let _adminTab = 'heute';
 let _adminAbschl = [], _adminNabschl = [];
+let _gaboId = null, _gaboVals = {gespraeche:0, abschluesse:0, rehakurs:0, teilnehmer:0, ansprache:0, terminierung:0};
 
 // ============================================================
 // INIT
@@ -738,12 +802,14 @@ async function renderAdminTab() {
   let entQ = db.from('wf_entries').select('*,wf_employees(name)').gte('date',fromDate).lte('date',toDate);
   let absQ = db.from('wf_abschluesse').select('*,wf_employees(name)').gte('date',fromDate).lte('date',toDate);
   let nabQ = db.from('wf_nichtabschluss').select('*,wf_employees(name)').gte('date',fromDate).lte('date',toDate);
+  let gaboQ = db.from('wf_gesundheitsabo').select('*,wf_employees(name)').gte('date',fromDate).lte('date',toDate);
   if (locId !== 'all') {
     entQ = entQ.eq('location_id', locId);
     absQ = absQ.eq('location_id', locId);
     nabQ = nabQ.eq('location_id', locId);
+    gaboQ = gaboQ.eq('location_id', locId);
   }
-  const [{data:entries},{data:abschl},{data:nabschl}] = await Promise.all([entQ,absQ,nabQ]);
+  const [{data:entries},{data:abschl},{data:nabschl},{data:gaboRows}] = await Promise.all([entQ,absQ,nabQ,gaboQ]);
   _adminAbschl = abschl||[];
   _adminNabschl = nabschl||[];
 
@@ -759,6 +825,13 @@ async function renderAdminTab() {
   const totAb=rows.reduce((s,r)=>s+r.ab,0);
   const totNab=rows.reduce((s,r)=>s+r.nab,0);
   const totUm=rows.reduce((s,r)=>s+r.umsatz,0);
+
+  // Gesundheitsabo Rangliste
+  const gaboMap = {};
+  const getG = (id, name) => { if (!gaboMap[id]) gaboMap[id]={name,gespraeche:0,abschluesse:0,rehakurs:0,teilnehmer:0,ansprache:0,terminierung:0}; return gaboMap[id]; };
+  (gaboRows||[]).forEach(g=>{ const r=getG(g.employee_id,g.wf_employees?.name||'?'); r.gespraeche+=g.gespraeche||0; r.abschluesse+=g.abschluesse||0; r.rehakurs+=g.rehakurs||0; r.teilnehmer+=g.teilnehmer||0; r.ansprache+=g.ansprache||0; r.terminierung+=g.terminierung||0; });
+  const gaboRows2 = Object.values(gaboMap);
+  const byGabo = [...gaboRows2].filter(r=>r.abschluesse>0).sort((a,b)=>b.abschluesse-a.abschluesse);
 
   // Ranglisten
   const byAq = [...rows].filter(r=>r.er>0).sort((a,b)=>(b.ab/b.er)-(a.ab/a.er));
@@ -791,6 +864,30 @@ async function renderAdminTab() {
     <table class="tbl"><thead><tr><th style="text-align:left">#</th><th>Mitarbeiter</th><th>Umsatz</th><th>Abs.</th></tr></thead><tbody>
     ${byUm.map((r,i)=>`<tr><td style="text-align:left;color:var(--muted)">${i+1}</td><td>${r.name}</td><td>${eur(r.umsatz)}</td><td>${r.ab}</td></tr>`).join('')}
     </tbody></table></div>`:''}
+
+    ${gaboRows2.length>0?`
+    <div style="padding:6px 12px 2px;font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase">🏥 Gesundheitsabo</div>
+    <div class="tbl-scroll" style="margin:0 12px 10px">
+    <table class="tbl">
+      <thead><tr><th>Mitarbeiter</th><th>Gespr.</th><th>Abschl.</th><th>Rehakurs</th><th>Teiln.</th><th>Anspr.</th><th>Term.</th></tr></thead>
+      <tbody>
+      ${gaboRows2.map(r=>`<tr>
+        <td>${r.name}</td>
+        <td>${r.gespraeche}</td>
+        <td style="font-weight:700;color:var(--p)">${r.abschluesse}</td>
+        <td>${r.rehakurs}</td>
+        <td>${r.teilnehmer}</td>
+        <td>${r.ansprache}</td>
+        <td>${r.terminierung}</td>
+      </tr>`).join('')}
+      </tbody>
+    </table></div>
+    ${byGabo.length>0?`<div style="padding:6px 12px 2px;font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase">🏆 Rangliste Gesundheitsabo</div>
+    <div class="tbl-scroll" style="margin:0 12px 10px">
+    <table class="tbl"><thead><tr><th style="text-align:left">#</th><th>Mitarbeiter</th><th>Abschlüsse</th><th>Gespräche</th></tr></thead><tbody>
+    ${byGabo.map((r,i)=>`<tr><td style="text-align:left;color:var(--muted)">${i+1}</td><td>${r.name}</td><td style="font-weight:700;color:var(--p)">${r.abschluesse}</td><td>${r.gespraeche}</td></tr>`).join('')}
+    </tbody></table></div>`:''}
+    `:''}
   `;
 
   // Abschluss-Liste mit Löschen
@@ -969,6 +1066,50 @@ async function editPin(id, name) {
   if(!newPin||newPin.length!==4||isNaN(newPin)){showToast('Ungültiger PIN');return;}
   await db.from('wf_employees').update({pin:newPin}).eq('id',id);
   showToast('✅ PIN geändert');
+}
+
+// ============================================================
+// GESUNDHEITSABO
+// ============================================================
+async function loadGesundheitsabo() {
+  navigate('screen-gesundheitsabo');
+  const today = todayStr();
+  document.getElementById('gabo-date-lbl').textContent = formatDate(today);
+  const { data: rows } = await db.from('wf_gesundheitsabo').select('*').eq('date', today).eq('employee_id', currentEmp.id).limit(1);
+  if (rows && rows.length > 0) {
+    _gaboId = rows[0].id;
+    _gaboVals = {
+      gespraeche:  rows[0].gespraeche||0,
+      abschluesse: rows[0].abschluesse||0,
+      rehakurs:    rows[0].rehakurs||0,
+      teilnehmer:  rows[0].teilnehmer||0,
+      ansprache:   rows[0].ansprache||0,
+      terminierung:rows[0].terminierung||0
+    };
+  } else {
+    _gaboId = null;
+    _gaboVals = {gespraeche:0, abschluesse:0, rehakurs:0, teilnehmer:0, ansprache:0, terminierung:0};
+  }
+  Object.keys(_gaboVals).forEach(k => {
+    document.getElementById('gabo-' + k).textContent = _gaboVals[k];
+  });
+}
+
+function stepChangeGabo(field, delta) {
+  _gaboVals[field] = Math.max(0, (_gaboVals[field] || 0) + delta);
+  document.getElementById('gabo-' + field).textContent = _gaboVals[field];
+}
+
+async function saveGesundheitsabo() {
+  const today = todayStr();
+  const row = { date: today, employee_id: currentEmp.id, location_id: currentLocId, ..._gaboVals };
+  if (_gaboId) {
+    await db.from('wf_gesundheitsabo').update(row).eq('id', _gaboId);
+  } else {
+    const { data } = await db.from('wf_gesundheitsabo').insert([row]).select();
+    if (data && data[0]) _gaboId = data[0].id;
+  }
+  showToast('✅ Gespeichert');
 }
 
 // ============================================================
