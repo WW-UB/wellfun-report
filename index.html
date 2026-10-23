@@ -844,7 +844,8 @@ async function renderAdminTab() {
   (abschl||[]).forEach(a=>{ const r=getE(a.employee_id,a.wf_employees?.name||'?'); r.ab++; r.umsatz+=a.gesamt_umsatz||0; r.five+=a.five_betrag||0; });
   (nabschl||[]).forEach(n=>{ getE(n.employee_id,n.wf_employees?.name||'?').nab++; });
 
-  const rows = Object.values(empMap);
+  const activeIds = new Set(_emps.map(e => e.id));
+  const rows = Object.entries(empMap).filter(([id]) => activeIds.has(id)).map(([,r]) => r);
   const totTl=rows.reduce((s,r)=>s+r.tl,0);
   const totEr=rows.reduce((s,r)=>s+r.er,0);
   const totAb=rows.reduce((s,r)=>s+r.ab,0);
@@ -855,7 +856,7 @@ async function renderAdminTab() {
   const gaboMap = {};
   const getG = (id, name) => { if (!gaboMap[id]) gaboMap[id]={name,gespraeche:0,abschluesse:0,rehakurs:0,teilnehmer:0,ansprache:0,terminierung:0}; return gaboMap[id]; };
   (gaboRows||[]).forEach(g=>{ const r=getG(g.employee_id,g.wf_employees?.name||'?'); r.gespraeche+=g.gespraeche||0; r.abschluesse+=g.abschluesse||0; r.rehakurs+=g.rehakurs||0; r.teilnehmer+=g.teilnehmer||0; r.ansprache+=g.ansprache||0; r.terminierung+=g.terminierung||0; });
-  const gaboRows2 = Object.values(gaboMap);
+  const gaboRows2 = Object.entries(gaboMap).filter(([id]) => activeIds.has(id)).map(([,r]) => r);
   const byGabo = [...gaboRows2].filter(r=>r.gespraeche>0).sort((a,b)=>(b.abschluesse/b.gespraeche)-(a.abschluesse/a.gespraeche));
 
   // Ranglisten
