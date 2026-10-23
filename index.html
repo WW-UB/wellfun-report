@@ -710,7 +710,7 @@ async function loadStats() {
     {data: entryToday}, {data: absToday}, {data: absWeek},
     {data: absMonth}, {data: absYtd},
     {data: nabToday}, {data: nabWeek}, {data: nabMonth},
-    {data: ziel}
+    {data: ziel}, {data: gaboToday}, {data: gaboMonth}
   ] = await Promise.all([
     db.from('wf_entries').select('*').eq('date',today).eq('employee_id',eid).limit(1),
     db.from('wf_abschluesse').select('*').eq('employee_id',eid).eq('date',today),
@@ -720,7 +720,9 @@ async function loadStats() {
     db.from('wf_nichtabschluss').select('id').eq('employee_id',eid).eq('date',today),
     db.from('wf_nichtabschluss').select('id').eq('employee_id',eid).gte('date',weekStart).lte('date',weekEnd),
     db.from('wf_nichtabschluss').select('id').eq('employee_id',eid).gte('date',monthStart).lte('date',monthEnd),
-    db.from('wf_ziele').select('*').eq('location_id',currentLocId).eq('year',year).eq('month',now.getMonth()+1).limit(1)
+    db.from('wf_ziele').select('*').eq('location_id',currentLocId).eq('year',year).eq('month',now.getMonth()+1).limit(1),
+    db.from('wf_gesundheitsabo').select('*').eq('employee_id',eid).eq('date',today).limit(1),
+    db.from('wf_gesundheitsabo').select('*').eq('employee_id',eid).gte('date',monthStart).lte('date',monthEnd)
   ]);
   const er = entryToday?.[0];
   const tl = er?.terminliste||0, ersch = er?.erschienen||0;
@@ -735,6 +737,14 @@ async function loadStats() {
   const aqM = ersch>0 ? Math.round(absM/ersch*100) : 0;
   const umsatzM = (absMonth||[]).reduce((s,a)=>s+(a.gesamt_umsatz||0),0);
   const ytdUmsatz = (absYtd||[]).reduce((s,a)=>s+(a.gesamt_umsatz||0),0);
+  // Gesundheitsabo Stats
+  const gt = gaboToday?.[0];
+  const gaboAbsT = gt?.abschluesse||0, gaboGesT = gt?.gespraeche||0;
+  const gaboAqT = gaboGesT>0 ? Math.round(gaboAbsT/gaboGesT*100) : 0;
+  const gaboAbsM = (gaboMonth||[]).reduce((s,r)=>s+(r.abschluesse||0),0);
+  const gaboGesM = (gaboMonth||[]).reduce((s,r)=>s+(r.gespraeche||0),0);
+  const gaboAqM = gaboGesM>0 ? Math.round(gaboAbsM/gaboGesM*100) : 0;
+
   const monatsziel = ziel?.[0]?.ziel_abos||0;
   const wochenziel = monatsziel>0 ? Math.round(monatsziel/4.3) : 0;
   const isAdmin = currentEmp.is_admin;
@@ -762,6 +772,13 @@ async function loadStats() {
       <div class="stat-box"><div class="stat-val">${aqM}%</div><div class="stat-lbl">AQ</div></div>
       ${isAdmin ? `<div class="stat-box"><div class="stat-val">${eur(umsatzM)}</div><div class="stat-lbl">Umsatz</div></div>` : ''}
       <div class="stat-box"><div class="stat-val">${Math.max(0,monatsziel-absM)}</div><div class="stat-lbl">Ziel Rest</div></div>
+    </div>
+    <div style="padding:10px 12px 4px;font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase">🏥 Gesundheitsabo</div>
+    <div class="stat-grid">
+      <div class="stat-box"><div class="stat-val">${gaboGesT}</div><div class="stat-lbl">Gespräche heute</div></div>
+      <div class="stat-box"><div class="stat-val">${gaboAbsT}</div><div class="stat-lbl">Abschlüsse heute</div></div>
+      <div class="stat-box"><div class="stat-val">${gaboAqT}%</div><div class="stat-lbl">AQ heute</div></div>
+      <div class="stat-box"><div class="stat-val">${gaboAqM}%</div><div class="stat-lbl">AQ Monat (${gaboAbsM}/${gaboGesM})</div></div>
     </div>
     ${monatsziel>0?`<div class="card"><div class="card-title">Monatsziel Fortschritt</div>
       <div class="prog-bar"><div class="prog-fill" style="width:${Math.min(100,Math.round(absM/monatsziel*100))}%"></div></div>
@@ -834,7 +851,7 @@ async function renderAdminTab() {
   const getG = (id, name) => { if (!gaboMap[id]) gaboMap[id]={name,gespraeche:0,abschluesse:0,rehakurs:0,teilnehmer:0,ansprache:0,terminierung:0}; return gaboMap[id]; };
   (gaboRows||[]).forEach(g=>{ const r=getG(g.employee_id,g.wf_employees?.name||'?'); r.gespraeche+=g.gespraeche||0; r.abschluesse+=g.abschluesse||0; r.rehakurs+=g.rehakurs||0; r.teilnehmer+=g.teilnehmer||0; r.ansprache+=g.ansprache||0; r.terminierung+=g.terminierung||0; });
   const gaboRows2 = Object.values(gaboMap);
-  const byGabo = [...gaboRows2].filter(r=>r.abschluesse>0).sort((a,b)=>b.abschluesse-a.abschluesse);
+  const byGabo = [...gaboRows2].filter(r=>r.gespraeche>0).sort((a,b)=>(b.abschluesse/b.gespraeche)-(a.abschluesse/a.gespraeche));
 
   // Ranglisten
   const byAq = [...rows].filter(r=>r.er>0).sort((a,b)=>(b.ab/b.er)-(a.ab/a.er));
@@ -872,12 +889,13 @@ async function renderAdminTab() {
     <div style="padding:6px 12px 2px;font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase">🏥 Gesundheitsabo</div>
     <div class="tbl-scroll" style="margin:0 12px 10px">
     <table class="tbl">
-      <thead><tr><th>Mitarbeiter</th><th>Gespr.</th><th>Abschl.</th><th>Rehakurs</th><th>Teiln.</th><th>Anspr.</th><th>Term.</th></tr></thead>
+      <thead><tr><th>Mitarbeiter</th><th>Gespr.</th><th>Abschl.</th><th>AQ</th><th>Rehakurs</th><th>Teiln.</th><th>Anspr.</th><th>Term.</th></tr></thead>
       <tbody>
       ${gaboRows2.map(r=>`<tr>
         <td>${r.name}</td>
         <td>${r.gespraeche}</td>
         <td style="font-weight:700;color:var(--p)">${r.abschluesse}</td>
+        <td>${r.gespraeche>0?Math.round(r.abschluesse/r.gespraeche*100)+'%':'–'}</td>
         <td>${r.rehakurs}</td>
         <td>${r.teilnehmer}</td>
         <td>${r.ansprache}</td>
@@ -885,10 +903,10 @@ async function renderAdminTab() {
       </tr>`).join('')}
       </tbody>
     </table></div>
-    ${byGabo.length>0?`<div style="padding:6px 12px 2px;font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase">🏆 Rangliste Gesundheitsabo</div>
+    ${byGabo.length>0?`<div style="padding:6px 12px 2px;font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase">🏆 Rangliste Gesundheitsabo AQ</div>
     <div class="tbl-scroll" style="margin:0 12px 10px">
-    <table class="tbl"><thead><tr><th style="text-align:left">#</th><th>Mitarbeiter</th><th>Abschlüsse</th><th>Gespräche</th></tr></thead><tbody>
-    ${byGabo.map((r,i)=>`<tr><td style="text-align:left;color:var(--muted)">${i+1}</td><td>${r.name}</td><td style="font-weight:700;color:var(--p)">${r.abschluesse}</td><td>${r.gespraeche}</td></tr>`).join('')}
+    <table class="tbl"><thead><tr><th style="text-align:left">#</th><th>Mitarbeiter</th><th>AQ</th><th>Abschl.</th><th>Gespr.</th></tr></thead><tbody>
+    ${byGabo.map((r,i)=>`<tr><td style="text-align:left;color:var(--muted)">${i+1}</td><td>${r.name}</td><td style="font-weight:700;color:var(--p)">${Math.round(r.abschluesse/r.gespraeche*100)}%</td><td>${r.abschluesse}</td><td>${r.gespraeche}</td></tr>`).join('')}
     </tbody></table></div>`:''}
     `:''}
   `;
