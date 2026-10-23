@@ -375,6 +375,8 @@ input:checked+.tgl-s::after{left:22px}
       <div class="step-val" id="gabo-rehakurs">0</div>
       <button class="step-btn" onclick="stepChangeGabo('rehakurs',1)">+</button>
     </div>
+    <label style="margin-top:12px">Datum Rehakurs</label>
+    <input type="date" id="gabo-rehakurs-datum">
   </div>
   <div class="card">
     <div class="card-title">Teilnehmer</div>
@@ -437,6 +439,7 @@ let _selTarif = null, _selLaufzeit = null;
 let _adminTab = 'heute';
 let _adminAbschl = [], _adminNabschl = [];
 let _gaboId = null, _gaboVals = {gespraeche:0, abschluesse:0, rehakurs:0, teilnehmer:0, ansprache:0, terminierung:0};
+let _gaboRehakursDatum = '';
 
 // ============================================================
 // INIT
@@ -1086,13 +1089,16 @@ async function loadGesundheitsabo() {
       ansprache:   rows[0].ansprache||0,
       terminierung:rows[0].terminierung||0
     };
+    _gaboRehakursDatum = rows[0].rehakurs_datum || '';
   } else {
     _gaboId = null;
     _gaboVals = {gespraeche:0, abschluesse:0, rehakurs:0, teilnehmer:0, ansprache:0, terminierung:0};
+    _gaboRehakursDatum = '';
   }
   Object.keys(_gaboVals).forEach(k => {
     document.getElementById('gabo-' + k).textContent = _gaboVals[k];
   });
+  document.getElementById('gabo-rehakurs-datum').value = _gaboRehakursDatum;
 }
 
 function stepChangeGabo(field, delta) {
@@ -1102,7 +1108,8 @@ function stepChangeGabo(field, delta) {
 
 async function saveGesundheitsabo() {
   const today = todayStr();
-  const row = { date: today, employee_id: currentEmp.id, location_id: currentLocId, ..._gaboVals };
+  const rehakursDatum = document.getElementById('gabo-rehakurs-datum').value || null;
+  const row = { date: today, employee_id: currentEmp.id, location_id: currentLocId, ..._gaboVals, rehakurs_datum: rehakursDatum };
   if (_gaboId) {
     await db.from('wf_gesundheitsabo').update(row).eq('id', _gaboId);
   } else {
