@@ -197,16 +197,31 @@ input:checked+.tgl-s::after{left:22px}
       <button class="step-btn" onclick="stepChange('erschienen',1)">+</button>
     </div>
   </div>
+  <div class="card">
+    <div class="card-title">Walk-ins</div>
+    <div class="stepper">
+      <button class="step-btn" onclick="stepChange('walk_ins',-1)">−</button>
+      <div class="step-val" id="val-walk_ins">0</div>
+      <button class="step-btn" onclick="stepChange('walk_ins',1)">+</button>
+    </div>
+  </div>
   <div style="padding:0 12px">
     <button class="btn btn-primary" onclick="saveEntry()">Speichern</button>
   </div>
   <!-- Abschlüsse des Tages -->
   <div class="card" style="margin-top:16px">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
-      <div class="card-title" style="margin-bottom:0">Abschlüsse heute</div>
-      <button class="btn btn-sm btn-primary" onclick="loadAbschlussForm()">＋ Abschluss</button>
+      <div class="card-title" style="margin-bottom:0">Termin-Abschlüsse heute</div>
+      <button class="btn btn-sm btn-primary" onclick="loadAbschlussForm(false)">＋ Abschluss</button>
     </div>
     <div id="abs-list-today"></div>
+  </div>
+  <div class="card">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+      <div class="card-title" style="margin-bottom:0">Walk-in Abschlüsse heute</div>
+      <button class="btn btn-sm btn-green" onclick="loadAbschlussForm(true)">＋ Walk-in</button>
+    </div>
+    <div id="walkin-list-today"></div>
   </div>
   <div class="card">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
@@ -221,7 +236,7 @@ input:checked+.tgl-s::after{left:22px}
 <div class="screen" id="screen-abschluss-form">
   <div class="hdr">
     <button class="hdr-back" onclick="goBack()">←</button>
-    <div class="hdr-main"><div class="hdr-title">Abschluss eintragen</div></div>
+    <div class="hdr-main"><div class="hdr-title" id="abs-form-title">Abschluss eintragen</div></div>
   </div>
   <div class="card">
     <label>Name des Mitglieds</label>
@@ -437,8 +452,8 @@ let currentEmp = null, currentLocId = null, currentLocName = '';
 let _locs = [], _emps = [];
 let _pinBuf = '';
 let _screenStack = ['screen-login'];
-let _entryId = null, _entryVals = {terminliste:0, erschienen:0};
-let _selTarif = null, _selLaufzeit = null;
+let _entryId = null, _entryVals = {terminliste:0, erschienen:0, walk_ins:0};
+let _selTarif = null, _selLaufzeit = null, _isWalkin = false;
 let _adminTab = 'heute';
 let _adminAbschl = [], _adminNabschl = [], _adminGabo = [];
 let _gaboId = null, _gaboVals = {gespraeche:0, abschluesse:0, rehakurs:0, teilnehmer:0, ansprache:0, terminierung:0};
@@ -533,13 +548,14 @@ async function loadEntry() {
   const { data: rows } = await db.from('wf_entries').select('*').eq('date', today).eq('employee_id', currentEmp.id).limit(1);
   if (rows && rows.length > 0) {
     _entryId = rows[0].id;
-    _entryVals = { terminliste: rows[0].terminliste, erschienen: rows[0].erschienen };
+    _entryVals = { terminliste: rows[0].terminliste, erschienen: rows[0].erschienen, walk_ins: rows[0].walk_ins||0 };
   } else {
     _entryId = null;
-    _entryVals = { terminliste: 0, erschienen: 0 };
+    _entryVals = { terminliste: 0, erschienen: 0, walk_ins: 0 };
   }
   document.getElementById('val-terminliste').textContent = _entryVals.terminliste;
   document.getElementById('val-erschienen').textContent = _entryVals.erschienen;
+  document.getElementById('val-walk_ins').textContent = _entryVals.walk_ins;
   loadTodayLists(today);
 }
 
@@ -551,7 +567,7 @@ function stepChange(field, delta) {
 async function saveEntry() {
   const today = todayStr();
   const row = { date: today, employee_id: currentEmp.id, location_id: currentLocId,
-    terminliste: _entryVals.terminliste, erschienen: _entryVals.erschienen };
+    terminliste: _entryVals.terminliste, erschienen: _entryVals.erschienen, walk_ins: _entryVals.walk_ins };
   if (_entryId) {
     await db.from('wf_entries').update(row).eq('id', _entryId);
   } else {
@@ -566,9 +582,21 @@ async function loadTodayLists(date) {
     db.from('wf_abschluesse').select('*').eq('date', date).eq('employee_id', currentEmp.id).order('created_at'),
     db.from('wf_nichtabschluss').select('*').eq('date', date).eq('employee_id', currentEmp.id).order('created_at')
   ]);
+  const terminAbs = (abschl||[]).filter(a => !a.is_walkin);
+  const walkinAbs = (abschl||[]).filter(a => a.is_walkin);
   const absEl = document.getElementById('abs-list-today');
-  if (!abschl || abschl.length === 0) { absEl.innerHTML = '<div style="color:var(--muted);font-size:13px;text-align:center;padding:10px">Noch keine Abschlüsse</div>'; }
-  else absEl.innerHTML = abschl.map(a => `
+  if (terminAbs.length === 0) { absEl.innerHTML = '<div style="color:var(--muted);font-size:13px;text-align:center;padding:10px">Noch keine Abschlüsse</div>'; }
+  else absEl.innerHTML = terminAbs.map(a => `
+    <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--border)">
+      <div>
+        <div style="font-weight:700;">${a.member_name || '–'}</div>
+        <div style="font-size:12px;color:var(--muted);">${a.tarif} · ${a.laufzeit_monate} Mo. · ${eur(a.gesamt_umsatz)}</div>
+      </div>
+      <button class="btn btn-sm btn-danger" onclick="deleteAbs('${a.id}')">✕</button>
+    </div>`).join('');
+  const walkinEl = document.getElementById('walkin-list-today');
+  if (walkinAbs.length === 0) { walkinEl.innerHTML = '<div style="color:var(--muted);font-size:13px;text-align:center;padding:10px">Noch keine Walk-in Abschlüsse</div>'; }
+  else walkinEl.innerHTML = walkinAbs.map(a => `
     <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--border)">
       <div>
         <div style="font-weight:700;">${a.member_name || '–'}</div>
@@ -600,8 +628,10 @@ async function deleteNab(id) {
 // ============================================================
 // ABSCHLUSS FORM
 // ============================================================
-function loadAbschlussForm() {
+function loadAbschlussForm(isWalkin) {
+  _isWalkin = !!isWalkin;
   _selTarif = null; _selLaufzeit = null;
+  document.getElementById('abs-form-title').textContent = _isWalkin ? 'Walk-in Abschluss' : 'Termin-Abschluss';
   document.getElementById('abs-member-name').value = '';
   document.getElementById('abs-startpaket').value = '0';
   document.getElementById('addon-egym').checked = false;
@@ -665,7 +695,8 @@ async function submitAbschluss() {
     tarif: _selTarif, laufzeit_monate: _selLaufzeit,
     wochenpreis: PREISE[_selTarif][_selLaufzeit],
     addon_egym: egym, addon_getraenke: getr, addon_sauna: sauna, sauna_preis: saunaPreis,
-    five, five_betrag: five ? FIVE_PREIS : 0, startpaket: start, gesamt_umsatz: gesamt
+    five, five_betrag: five ? FIVE_PREIS : 0, startpaket: start, gesamt_umsatz: gesamt,
+    is_walkin: _isWalkin
   };
   const { error } = await db.from('wf_abschluesse').insert([row]);
   if (error) { showToast('❌ Fehler: ' + error.message); return; }
@@ -728,16 +759,19 @@ async function loadStats() {
     db.from('wf_gesundheitsabo').select('*').eq('employee_id',eid).gte('date',monthStart).lte('date',monthEnd)
   ]);
   const er = entryToday?.[0];
-  const tl = er?.terminliste||0, ersch = er?.erschienen||0;
+  const tl = er?.terminliste||0, ersch = er?.erschienen||0, wi = er?.walk_ins||0;
   const eq = tl>0 ? Math.round(ersch/tl*100) : 0;
-  const absT = absToday?.length||0, nabT = nabToday?.length||0;
-  const aqT = ersch>0 ? Math.round(absT/ersch*100) : 0;
+  const terminAbsT = (absToday||[]).filter(a=>!a.is_walkin).length;
+  const walkinAbsT = (absToday||[]).filter(a=>a.is_walkin).length;
+  const nabT = nabToday?.length||0;
+  const aqTerminT = ersch>0 ? Math.round(terminAbsT/ersch*100) : 0;
+  const aqWalkinT = wi>0 ? Math.round(walkinAbsT/wi*100) : 0;
   const umsatzT = (absToday||[]).reduce((s,a)=>s+(a.gesamt_umsatz||0),0);
-  const absW = absWeek?.length||0, nabW = nabWeek?.length||0;
-  const aqW = ersch>0 ? Math.round(absW/ersch*100) : 0;
+  const terminAbsW = (absWeek||[]).filter(a=>!a.is_walkin).length;
+  const walkinAbsW = (absWeek||[]).filter(a=>a.is_walkin).length;
   const umsatzW = (absWeek||[]).reduce((s,a)=>s+(a.gesamt_umsatz||0),0);
-  const absM = absMonth?.length||0, nabM = nabMonth?.length||0;
-  const aqM = ersch>0 ? Math.round(absM/ersch*100) : 0;
+  const terminAbsM = (absMonth||[]).filter(a=>!a.is_walkin).length;
+  const walkinAbsM = (absMonth||[]).filter(a=>a.is_walkin).length;
   const umsatzM = (absMonth||[]).reduce((s,a)=>s+(a.gesamt_umsatz||0),0);
   const ytdUmsatz = (absYtd||[]).reduce((s,a)=>s+(a.gesamt_umsatz||0),0);
   // Gesundheitsabo Stats
@@ -759,22 +793,23 @@ async function loadStats() {
     <div style="padding:10px 12px 4px;font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase">Heute</div>
     <div class="stat-grid">
       <div class="stat-box"><div class="stat-val">${eq}%</div><div class="stat-lbl">EQ (${ersch}/${tl})</div></div>
-      <div class="stat-box"><div class="stat-val">${aqT}%</div><div class="stat-lbl">AQ (${absT}/${absT+nabT})</div></div>
-      ${isAdmin ? `<div class="stat-box full"><div class="stat-val">${eur(umsatzT)}</div><div class="stat-lbl">Umsatz heute</div></div>` : ''}
+      <div class="stat-box"><div class="stat-val">${aqTerminT}%</div><div class="stat-lbl">AQ Termine (${terminAbsT}/${ersch})</div></div>
+      <div class="stat-box"><div class="stat-val">${aqWalkinT}%</div><div class="stat-lbl">AQ Walk-in (${walkinAbsT}/${wi})</div></div>
+      ${isAdmin ? `<div class="stat-box"><div class="stat-val">${eur(umsatzT)}</div><div class="stat-lbl">Umsatz heute</div></div>` : ''}
     </div>
     <div style="padding:10px 12px 4px;font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase">Diese Woche</div>
     <div class="stat-grid">
-      <div class="stat-box"><div class="stat-val">${absW}</div><div class="stat-lbl">Abschlüsse</div></div>
-      <div class="stat-box"><div class="stat-val">${aqW}%</div><div class="stat-lbl">AQ</div></div>
+      <div class="stat-box"><div class="stat-val">${terminAbsW}</div><div class="stat-lbl">Abschl. Termin</div></div>
+      <div class="stat-box"><div class="stat-val">${walkinAbsW}</div><div class="stat-lbl">Abschl. Walk-in</div></div>
       ${isAdmin ? `<div class="stat-box"><div class="stat-val">${eur(umsatzW)}</div><div class="stat-lbl">Umsatz</div></div>` : ''}
-      <div class="stat-box"><div class="stat-val">${Math.max(0,wochenziel-absW)}</div><div class="stat-lbl">Ziel Rest</div></div>
+      <div class="stat-box"><div class="stat-val">${Math.max(0,wochenziel-(terminAbsW+walkinAbsW))}</div><div class="stat-lbl">Ziel Rest</div></div>
     </div>
     <div style="padding:10px 12px 4px;font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase">Dieser Monat</div>
     <div class="stat-grid">
-      <div class="stat-box"><div class="stat-val">${absM}</div><div class="stat-lbl">Abschlüsse</div></div>
-      <div class="stat-box"><div class="stat-val">${aqM}%</div><div class="stat-lbl">AQ</div></div>
+      <div class="stat-box"><div class="stat-val">${terminAbsM}</div><div class="stat-lbl">Abschl. Termin</div></div>
+      <div class="stat-box"><div class="stat-val">${walkinAbsM}</div><div class="stat-lbl">Abschl. Walk-in</div></div>
       ${isAdmin ? `<div class="stat-box"><div class="stat-val">${eur(umsatzM)}</div><div class="stat-lbl">Umsatz</div></div>` : ''}
-      <div class="stat-box"><div class="stat-val">${Math.max(0,monatsziel-absM)}</div><div class="stat-lbl">Ziel Rest</div></div>
+      <div class="stat-box"><div class="stat-val">${Math.max(0,monatsziel-(terminAbsM+walkinAbsM))}</div><div class="stat-lbl">Ziel Rest</div></div>
     </div>
     <div style="padding:10px 12px 4px;font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase">🏥 Gesundheitsabo</div>
     <div class="stat-grid">
@@ -838,16 +873,18 @@ async function renderAdminTab() {
   _adminGabo = gaboRows||[];
 
   const empMap = {};
-  const getE = (id, name) => { if (!empMap[id]) empMap[id]={name,tl:0,er:0,ab:0,nab:0,umsatz:0,five:0}; return empMap[id]; };
-  (entries||[]).forEach(e=>{ const r=getE(e.employee_id,e.wf_employees?.name||'?'); r.tl+=e.terminliste||0; r.er+=e.erschienen||0; });
-  (abschl||[]).forEach(a=>{ const r=getE(a.employee_id,a.wf_employees?.name||'?'); r.ab++; r.umsatz+=a.gesamt_umsatz||0; r.five+=a.five_betrag||0; });
+  const getE = (id, name) => { if (!empMap[id]) empMap[id]={name,tl:0,er:0,wi:0,abTermin:0,abWalkin:0,nab:0,umsatz:0,five:0}; return empMap[id]; };
+  (entries||[]).forEach(e=>{ const r=getE(e.employee_id,e.wf_employees?.name||'?'); r.tl+=e.terminliste||0; r.er+=e.erschienen||0; r.wi+=e.walk_ins||0; });
+  (abschl||[]).forEach(a=>{ const r=getE(a.employee_id,a.wf_employees?.name||'?'); if(a.is_walkin) r.abWalkin++; else r.abTermin++; r.umsatz+=a.gesamt_umsatz||0; r.five+=a.five_betrag||0; });
   (nabschl||[]).forEach(n=>{ getE(n.employee_id,n.wf_employees?.name||'?').nab++; });
 
   const activeIds = new Set(_emps.map(e => e.id));
   const rows = Object.entries(empMap).filter(([id]) => activeIds.has(id)).map(([,r]) => r);
   const totTl=rows.reduce((s,r)=>s+r.tl,0);
   const totEr=rows.reduce((s,r)=>s+r.er,0);
-  const totAb=rows.reduce((s,r)=>s+r.ab,0);
+  const totWi=rows.reduce((s,r)=>s+r.wi,0);
+  const totAbT=rows.reduce((s,r)=>s+r.abTermin,0);
+  const totAbW=rows.reduce((s,r)=>s+r.abWalkin,0);
   const totNab=rows.reduce((s,r)=>s+r.nab,0);
   const totUm=rows.reduce((s,r)=>s+r.umsatz,0);
 
@@ -859,35 +896,37 @@ async function renderAdminTab() {
   const byGabo = [...gaboRows2].filter(r=>r.gespraeche>0).sort((a,b)=>(b.abschluesse/b.gespraeche)-(a.abschluesse/a.gespraeche));
 
   // Ranglisten
-  const byAq = [...rows].filter(r=>r.er>0).sort((a,b)=>(b.ab/b.er)-(a.ab/a.er));
+  const byAq = [...rows].filter(r=>r.er>0).sort((a,b)=>(b.abTermin/b.er)-(a.abTermin/a.er));
   const byUm = [...rows].filter(r=>r.umsatz>0).sort((a,b)=>b.umsatz-a.umsatz);
 
   document.getElementById('admin-content').innerHTML = `
     <div class="tbl-scroll" style="margin:10px 12px">
     <table class="tbl">
-      <thead><tr><th>Mitarbeiter</th><th>EQ</th><th>AQ</th><th>Abs.</th><th>Umsatz</th></tr></thead>
+      <thead><tr><th>Mitarbeiter</th><th>EQ</th><th>AQ-T</th><th>AQ-W</th><th>Abs.T</th><th>Abs.W</th><th>Umsatz</th></tr></thead>
       <tbody>
         ${rows.map(r=>`<tr>
           <td>${r.name}</td>
           <td>${r.tl>0?Math.round(r.er/r.tl*100)+'%':'–'}</td>
-          <td>${r.er>0?Math.round(r.ab/r.er*100)+'%':'–'}</td>
-          <td>${r.ab}</td>
+          <td>${r.er>0?Math.round(r.abTermin/r.er*100)+'%':'–'}</td>
+          <td>${r.wi>0?Math.round(r.abWalkin/r.wi*100)+'%':'–'}</td>
+          <td>${r.abTermin}</td>
+          <td>${r.abWalkin}</td>
           <td>${eur(r.umsatz)}</td>
         </tr>`).join('')}
-        <tr class="tot"><td>Gesamt</td><td>${totTl>0?Math.round(totEr/totTl*100)+'%':'–'}</td><td>${totEr>0?Math.round(totAb/totEr*100)+'%':'–'}</td><td>${totAb}</td><td>${eur(totUm)}</td></tr>
+        <tr class="tot"><td>Gesamt</td><td>${totTl>0?Math.round(totEr/totTl*100)+'%':'–'}</td><td>${totEr>0?Math.round(totAbT/totEr*100)+'%':'–'}</td><td>${totWi>0?Math.round(totAbW/totWi*100)+'%':'–'}</td><td>${totAbT}</td><td>${totAbW}</td><td>${eur(totUm)}</td></tr>
       </tbody>
     </table></div>
 
-    ${byAq.length>0?`<div style="padding:6px 12px 2px;font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase">🏆 Rangliste AQ</div>
+    ${byAq.length>0?`<div style="padding:6px 12px 2px;font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase">🏆 Rangliste AQ Termine</div>
     <div class="tbl-scroll" style="margin:0 12px 10px">
-    <table class="tbl"><thead><tr><th style="text-align:left">#</th><th>Mitarbeiter</th><th>AQ</th><th>Abs.</th></tr></thead><tbody>
-    ${byAq.map((r,i)=>`<tr><td style="text-align:left;color:var(--muted)">${i+1}</td><td>${r.name}</td><td>${Math.round(r.ab/r.er*100)}%</td><td>${r.ab}</td></tr>`).join('')}
+    <table class="tbl"><thead><tr><th style="text-align:left">#</th><th>Mitarbeiter</th><th>AQ-T</th><th>Abs.T</th></tr></thead><tbody>
+    ${byAq.map((r,i)=>`<tr><td style="text-align:left;color:var(--muted)">${i+1}</td><td>${r.name}</td><td>${Math.round(r.abTermin/r.er*100)}%</td><td>${r.abTermin}</td></tr>`).join('')}
     </tbody></table></div>`:''}
 
     ${byUm.length>0?`<div style="padding:6px 12px 2px;font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase">💰 Rangliste Umsatz</div>
     <div class="tbl-scroll" style="margin:0 12px 10px">
-    <table class="tbl"><thead><tr><th style="text-align:left">#</th><th>Mitarbeiter</th><th>Umsatz</th><th>Abs.</th></tr></thead><tbody>
-    ${byUm.map((r,i)=>`<tr><td style="text-align:left;color:var(--muted)">${i+1}</td><td>${r.name}</td><td>${eur(r.umsatz)}</td><td>${r.ab}</td></tr>`).join('')}
+    <table class="tbl"><thead><tr><th style="text-align:left">#</th><th>Mitarbeiter</th><th>Umsatz</th><th>Abs.T</th><th>Abs.W</th></tr></thead><tbody>
+    ${byUm.map((r,i)=>`<tr><td style="text-align:left;color:var(--muted)">${i+1}</td><td>${r.name}</td><td>${eur(r.umsatz)}</td><td>${r.abTermin}</td><td>${r.abWalkin}</td></tr>`).join('')}
     </tbody></table></div>`:''}
 
     ${gaboRows2.length>0?`
