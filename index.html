@@ -310,6 +310,20 @@ input:checked+.tgl-s::after{left:22px}
     <div class="tab" onclick="setAdminTab('woche',this)">Woche</div>
     <div class="tab" onclick="setAdminTab('monat',this)">Monat</div>
     <div class="tab" onclick="setAdminTab('ytd',this)">YTD</div>
+    <div class="tab" onclick="setAdminTab('custom',this)">Zeitraum</div>
+  </div>
+  <div id="admin-custom-range" style="display:none;padding:10px 12px;background:#fff;border-bottom:1px solid var(--border)">
+    <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+      <div style="display:flex;flex-direction:column;gap:2px;flex:1">
+        <label style="font-size:11px;font-weight:700;color:var(--muted)">VON</label>
+        <input type="date" id="admin-date-from" style="padding:8px 10px;font-size:14px">
+      </div>
+      <div style="display:flex;flex-direction:column;gap:2px;flex:1">
+        <label style="font-size:11px;font-weight:700;color:var(--muted)">BIS</label>
+        <input type="date" id="admin-date-to" style="padding:8px 10px;font-size:14px">
+      </div>
+      <button class="btn btn-primary btn-sm" style="margin-top:16px;padding:10px 18px" onclick="renderAdminTab()">Anzeigen</button>
+    </div>
   </div>
   <div id="admin-content"><div class="spinner">Lade …</div></div>
   <div style="padding:0 12px;display:flex;gap:8px;flex-wrap:wrap;margin-top:8px">
@@ -458,6 +472,7 @@ let _adminTab = 'heute';
 let _adminAbschl = [], _adminNabschl = [], _adminGabo = [];
 let _gaboId = null, _gaboVals = {gespraeche:0, abschluesse:0, rehakurs:0, teilnehmer:0, ansprache:0, terminierung:0};
 let _gaboRehakursDatum = '';
+let _zielGoalMap = {};
 
 // ============================================================
 // INIT
@@ -843,7 +858,9 @@ function setAdminTab(tab, el) {
   _adminTab = tab;
   document.querySelectorAll('.tabs .tab').forEach(t => t.classList.remove('active'));
   el.classList.add('active');
-  renderAdminTab();
+  const cr = document.getElementById('admin-custom-range');
+  if (cr) cr.style.display = tab === 'custom' ? 'block' : 'none';
+  if (tab !== 'custom') renderAdminTab();
 }
 
 async function renderAdminTab() {
@@ -855,6 +872,11 @@ async function renderAdminTab() {
   if (_adminTab === 'heute') { fromDate = toDate = today; }
   else if (_adminTab === 'woche') { fromDate = getMonday(now); toDate = getFriday(now); }
   else if (_adminTab === 'monat') { fromDate = `${year}-${String(now.getMonth()+1).padStart(2,'0')}-01`; toDate = lastDayOfMonth(year,now.getMonth()+1); }
+  else if (_adminTab === 'custom') {
+    fromDate = document.getElementById('admin-date-from').value;
+    toDate = document.getElementById('admin-date-to').value;
+    if (!fromDate || !toDate) { document.getElementById('admin-content').innerHTML = '<div class="card" style="text-align:center;padding:32px;color:var(--muted)">Bitte Von- und Bis-Datum auswählen.</div>'; return; }
+  }
   else { fromDate = `${year}-01-01`; toDate = today; }
 
   let entQ = db.from('wf_entries').select('*,wf_employees(name)').gte('date',fromDate).lte('date',toDate);
@@ -1037,27 +1059,68 @@ function dlCsv(csv, filename) {
 async function loadZiele() {
   navigate('screen-ziele');
   document.getElementById('ziele-content').innerHTML = '<div class="spinner">Lade …</div>';
-  const now = new Date(); const year = now.getFullYear(); const month = now.getMonth()+1;
+  const now = new Date(); const year = now.getFullYear();
   const locSel = `<select id="ziel-loc" onchange="loadZielForLoc()">${_locs.map(l=>`<option value="${l.id}">${l.name}</option>`).join('')}</select>`;
+  const yearSel = `<select id="ziel-year" onchange="loadZielForLoc()">${[year-1,year,year+1].map(y=>`<option value="${y}" ${y===year?'selected':''}>${y}</option>`).join('')}</select>`;
   document.getElementById('ziele-content').innerHTML = `
     <div class="card">
-      <div class="card-title">Standort</div>
-      ${locSel}
+      <div class="card-title">Standort &amp; Jahr</div>
+      <div style="display:flex;gap:8px">
+        ${locSel}
+        ${yearSel}
+      </div>
       <div id="ziel-form-wrap" style="margin-top:12px"></div>
     </div>
+    <div id="ziel-jahres-wrap"></div>
     <div id="ziel-dist-wrap"></div>`;
   loadZielForLoc();
 }
 
 async function loadZielForLoc() {
   const locId = document.getElementById('ziel-loc').value;
-  const now = new Date(); const year = now.getFullYear(); const month = now.getMonth()+1;
-  const {data} = await db.from('wf_ziele').select('*').eq('location_id',locId).eq('year',year).eq('month',month).limit(1);
-  const abos = data?.[0]?.ziel_abos || 0;
+  const year = parseInt(document.getElementById('ziel-year').value);
+  const now = new Date(); const curMonth = now.getMonth()+1; const curYear = now.getFullYear();
+  const {data: allGoals} = await db.from('wf_ziele').select('*').eq('location_id',locId).eq('year',year);
+  _zielGoalMap = {};
+  (allGoals||[]).forEach(g => { _zielGoalMap[g.month] = g.ziel_abos; });
+  const mNames = ['Januar','Februar','März','April','Mai','Juni','Juli','August','September','Oktober','November','Dezember'];
+  const rows = mNames.map((name,i) => {
+    const m = i+1;
+    const abos = _zielGoalMap[m] || 0;
+    const isCur = m===curMonth && year===curYear;
+    return `<tr onclick="editZielMonth(${m})" style="cursor:pointer">
+      <td style="padding:8px 12px;font-size:13px;${isCur?'font-weight:700;color:var(--p)':''}">${name.slice(0,3)} ${year}${isCur?' ◀':''}</td>
+      <td style="padding:8px 12px;text-align:right;font-weight:700;${abos?'':'color:var(--muted)'}">${abos||'–'}</td>
+    </tr>`;
+  }).join('');
+  const total = Object.values(_zielGoalMap).reduce((s,v)=>s+v,0);
+  document.getElementById('ziel-jahres-wrap').innerHTML = `
+    <div class="card">
+      <div class="card-title">Jahresübersicht ${year}</div>
+      <table style="width:100%;border-collapse:collapse">
+        <thead><tr style="background:var(--border)">
+          <th style="padding:8px 12px;text-align:left;font-size:12px;font-weight:700">Monat</th>
+          <th style="padding:8px 12px;text-align:right;font-size:12px;font-weight:700">Ziel Abschlüsse</th>
+        </tr></thead>
+        <tbody>${rows}</tbody>
+        <tfoot><tr style="border-top:2px solid var(--border)">
+          <td style="padding:8px 12px;font-size:13px;font-weight:700">Gesamt ${year}</td>
+          <td style="padding:8px 12px;text-align:right;font-weight:900">${total||'–'}</td>
+        </tr></tfoot>
+      </table>
+      <div style="font-size:11px;color:var(--muted);margin-top:8px">Auf einen Monat tippen zum Bearbeiten.</div>
+    </div>`;
+  editZielMonth(curYear===year ? curMonth : 1);
+}
+
+function editZielMonth(month) {
+  const year = parseInt(document.getElementById('ziel-year').value);
+  const abos = _zielGoalMap[month] || 0;
+  const mNames = ['Januar','Februar','März','April','Mai','Juni','Juli','August','September','Oktober','November','Dezember'];
   document.getElementById('ziel-form-wrap').innerHTML = `
-    <label>Monats-Ziel (Abschlüsse) – ${monthName(month)} ${year}</label>
+    <label style="font-weight:700">Monats-Ziel – ${mNames[month-1]} ${year}</label>
     <input type="number" id="ziel-abos" value="${abos}" min="0" step="1">
-    <button class="btn btn-primary" onclick="saveZiel()">Ziel speichern</button>`;
+    <button class="btn btn-primary" onclick="saveZiel(${month})">Ziel speichern</button>`;
   renderZielDist(year, month, abos);
 }
 
@@ -1075,14 +1138,16 @@ function renderZielDist(year, month, abos) {
     </div>`;
 }
 
-async function saveZiel() {
+async function saveZiel(month) {
   const locId = document.getElementById('ziel-loc').value;
+  const year = parseInt(document.getElementById('ziel-year').value);
   const abos = parseInt(document.getElementById('ziel-abos').value)||0;
-  const now = new Date(); const year=now.getFullYear(); const month=now.getMonth()+1;
   const {error} = await db.from('wf_ziele').upsert([{location_id:locId,year,month,ziel_abos:abos}],{onConflict:'location_id,year,month'});
   if(error){showToast('❌ '+error.message);return;}
   showToast('✅ Ziel gespeichert');
-  renderZielDist(year,month,abos);
+  _zielGoalMap[month] = abos;
+  renderZielDist(year, month, abos);
+  loadZielForLoc();
 }
 
 // ============================================================
