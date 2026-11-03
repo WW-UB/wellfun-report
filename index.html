@@ -1117,10 +1117,14 @@ function editZielMonth(month) {
   const year = parseInt(document.getElementById('ziel-year').value);
   const abos = _zielGoalMap[month] || 0;
   const mNames = ['Januar','Februar','März','April','Mai','Juni','Juli','August','September','Oktober','November','Dezember'];
+  const hasGoal = month in _zielGoalMap && _zielGoalMap[month] > 0;
   document.getElementById('ziel-form-wrap').innerHTML = `
     <label style="font-weight:700">Monats-Ziel – ${mNames[month-1]} ${year}</label>
     <input type="number" id="ziel-abos" value="${abos}" min="0" step="1">
-    <button class="btn btn-primary" onclick="saveZiel(${month})">Ziel speichern</button>`;
+    <div style="display:flex;gap:8px;margin-top:4px">
+      <button class="btn btn-primary" onclick="saveZiel(${month})">Ziel speichern</button>
+      ${hasGoal ? `<button class="btn" style="color:var(--p);border:1px solid var(--p)" onclick="deleteZiel(${month})">Löschen</button>` : ''}
+    </div>`;
   renderZielDist(year, month, abos);
 }
 
@@ -1147,6 +1151,18 @@ async function saveZiel(month) {
   showToast('✅ Ziel gespeichert');
   _zielGoalMap[month] = abos;
   renderZielDist(year, month, abos);
+  loadZielForLoc();
+}
+
+async function deleteZiel(month) {
+  if(!confirm('Ziel wirklich löschen?')) return;
+  const locId = document.getElementById('ziel-loc').value;
+  const year = parseInt(document.getElementById('ziel-year').value);
+  const {error} = await db.from('wf_ziele').delete().eq('location_id',locId).eq('year',year).eq('month',month);
+  if(error){showToast('❌ '+error.message);return;}
+  showToast('✅ Ziel gelöscht');
+  delete _zielGoalMap[month];
+  document.getElementById('ziel-dist-wrap').innerHTML='';
   loadZielForLoc();
 }
 
