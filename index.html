@@ -747,6 +747,7 @@ async function submitNichtabschluss() {
 async function loadStats() {
   navigate('screen-stats');
   document.getElementById('stats-content').innerHTML = '<div class="spinner">Lade …</div>';
+  try {
   const now = new Date(); const today = todayStr();
   const year = now.getFullYear();
   const ytdStart = `${year}-01-01`;
@@ -756,10 +757,10 @@ async function loadStats() {
   const monthEnd = lastDayOfMonth(year, now.getMonth()+1);
   const eid = currentEmp.id;
   const [
-    {data: entryToday}, {data: absToday}, {data: absWeek},
-    {data: absMonth}, {data: absYtd},
-    {data: nabToday}, {data: nabWeek}, {data: nabMonth},
-    {data: ziel}, {data: gaboToday}, {data: gaboMonth}
+    {data: entryToday, error: e1}, {data: absToday, error: e2}, {data: absWeek, error: e3},
+    {data: absMonth, error: e4}, {data: absYtd, error: e5},
+    {data: nabToday, error: e6}, {data: nabWeek, error: e7}, {data: nabMonth, error: e8},
+    {data: ziel, error: e9}
   ] = await Promise.all([
     db.from('wf_entries').select('*').eq('date',today).eq('employee_id',eid).limit(1),
     db.from('wf_abschluesse').select('*').eq('employee_id',eid).eq('date',today),
@@ -769,10 +770,19 @@ async function loadStats() {
     db.from('wf_nichtabschluss').select('id').eq('employee_id',eid).eq('date',today),
     db.from('wf_nichtabschluss').select('id').eq('employee_id',eid).gte('date',weekStart).lte('date',weekEnd),
     db.from('wf_nichtabschluss').select('id').eq('employee_id',eid).gte('date',monthStart).lte('date',monthEnd),
-    db.from('wf_ziele').select('*').eq('location_id',currentLocId).eq('year',year).eq('month',now.getMonth()+1).limit(1),
-    db.from('wf_gesundheitsabo').select('*').eq('employee_id',eid).eq('date',today).limit(1),
-    db.from('wf_gesundheitsabo').select('*').eq('employee_id',eid).gte('date',monthStart).lte('date',monthEnd)
+    db.from('wf_ziele').select('*').eq('location_id',currentLocId).eq('year',year).eq('month',now.getMonth()+1).limit(1)
   ]);
+  const firstErr = e1||e2||e3||e4||e5||e6||e7||e8||e9;
+  if (firstErr) { document.getElementById('stats-content').innerHTML = `<div class="card" style="color:red">Fehler: ${firstErr.message}</div>`; return; }
+  // Gesundheitsabo separat (Tabelle könnte fehlen)
+  let gaboToday = [], gaboMonth = [];
+  try {
+    const [{data: gt},{data: gm}] = await Promise.all([
+      db.from('wf_gesundheitsabo').select('*').eq('employee_id',eid).eq('date',today).limit(1),
+      db.from('wf_gesundheitsabo').select('*').eq('employee_id',eid).gte('date',monthStart).lte('date',monthEnd)
+    ]);
+    gaboToday = gt||[]; gaboMonth = gm||[];
+  } catch(ge) { /* Tabelle noch nicht angelegt – ignorieren */ }
   const er = entryToday?.[0];
   const tl = er?.terminliste||0, ersch = er?.erschienen||0, wi = er?.walk_ins||0;
   const eq = tl>0 ? Math.round(ersch/tl*100) : 0;
@@ -787,6 +797,7 @@ async function loadStats() {
   const umsatzW = (absWeek||[]).reduce((s,a)=>s+(a.gesamt_umsatz||0),0);
   const terminAbsM = (absMonth||[]).filter(a=>!a.is_walkin).length;
   const walkinAbsM = (absMonth||[]).filter(a=>a.is_walkin).length;
+  const absM = terminAbsM + walkinAbsM;
   const umsatzM = (absMonth||[]).reduce((s,a)=>s+(a.gesamt_umsatz||0),0);
   const ytdUmsatz = (absYtd||[]).reduce((s,a)=>s+(a.gesamt_umsatz||0),0);
   // Gesundheitsabo Stats
@@ -837,6 +848,9 @@ async function loadStats() {
       <div class="prog-bar"><div class="prog-fill" style="width:${Math.min(100,Math.round(absM/monatsziel*100))}%"></div></div>
       <div class="prog-labels"><span>${absM} Abschlüsse</span><span>Ziel: ${monatsziel}</span></div></div>`:''}
   `;
+  } catch(err) {
+    document.getElementById('stats-content').innerHTML = `<div class="card" style="color:red;padding:16px">Fehler beim Laden: ${err.message}</div>`;
+  }
 }
 
 // ============================================================
